@@ -1,35 +1,45 @@
 ## File of useful functions to load at top of script
 
 #Function to create custom size & step batches from df, sorted via given column
-create_batch <- function(df, sort_col, batch_size, batch_step, save = FALSE){
-  # Load necessary libraries
-  library(dplyr)
-  library(purrr)
-  # Specify the batch size
-  batch_size <- batch_size  #input variable
-  
-  # Split the dataframe into batches
-  batches <- df %>%
-    arrange(sort_col) %>%
+create_batch <- function(df, batch_size, method = split, batch_step = NULL, save = FALSE, folder_name = NULL, loc = NULL){
+  methods <- c("split", "sliding_window")
+  method <- match.arg(method, methods)
+  # Load or install necessary libraries
+  required_pkg <- c("dplyr", "purr")
+  load_install_pkg(required_pkg)
+  # Split the dataframe into regular batches
+  if (method == "split"){
+    batches <- df %>%
     group_by(batch = cumsum(row_number() %% batch_size == 1)) %>%
     ungroup() %>%
     nest()
-  
-  return(batches$data)
-  
-    # Save all batchs if save == TRUE
-    if (save == TRUE){
-    # Create a directory to store the batches
-    batch_dir <- "batches"  # Change this to your desired directory name
-    dir.create(batch_dir, showWarnings = FALSE)
-    walk2(batches$data, seq_along(batches$data), batch_dir, save_batch)
     }
+    #Split into sliding window batches
+    else if (method == "sliding_window"){
+      #check if batch step argument is given
+      if (!is.null(batch_step)) {
+        for (i in seq(1, ncol(data), batch_step)) {
+            end <- min(i + batch_size - 1, ncol(data))
+            batch <- data[, i:end]
+            batches[[length(batches) + 1]] <- batch
+            }
+        } else {stop("Batch Step size is missing. Cannot perform sliding window analysis without step size.")}
+      
+      }
+    
+  # Save all batchs if save == TRUE
+    if (save == TRUE){
+    setwd(loc)
+    # Create a directory to store the batches
+    dir.create(folder_name, showWarnings = FALSE)
+    walk2(batches$data, seq_along(batches$data), batch_dir, save_batch)
+    } else{return(batches$data)}
  }
 
 
 # Function to save a batch to given directory or as a TEMP file
 save_batch <- function(batch_df, batch_index, batch_dir, file_extension = "csv", temp = FALSE) {
-  library(VariantAnnotation)
+  #library(VariantAnnotation)
   
   # Get directory from arguments
   # Generate the file name with the specified file extension
@@ -53,4 +63,16 @@ save_batch <- function(batch_df, batch_index, batch_dir, file_extension = "csv",
   } else {
     stop("Unsupported file extension. Use 'csv' or 'vcf'.")
   }
+}
+
+# Function to load or install required packages
+load_install_pkg <- function(required_packages) {
+  # Check if packages are installed, and install missing ones
+  missing_packages <- required_packages[!(required_packages %in% installed.packages()[,"Package"])]
+  if (length(missing_packages) > 0) {
+    message("Installing missing packages: ", paste(missing_packages, collapse = ", "))
+    install.packages(missing_packages, dependencies = TRUE)
+  }
+  # Load all required packages
+  lapply(required_packages, require, character.only = TRUE)
 }
