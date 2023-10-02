@@ -76,3 +76,7 @@ load_install_pkg <- function(required_packages) {
   # Load all required packages
   lapply(required_packages, require, character.only = TRUE)
 }
+
+`%notin%` <- function(x, y) {
+  !(x %in% y)
+}

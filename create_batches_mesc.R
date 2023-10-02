@@ -7,6 +7,7 @@ source("data_functions.R")
 required_packages <- c("magrittr", "genio", "dplyr", "BiocManager", "snpStats")
 # Install or load missing packages
 load_install_pkg(required_packages)
+
 #Load in data
 #bed_path <- "/u/project/gandalm/cindywen/isoform_twas/genotype/all_data/isec_R2_greater_than_3/ancestry/eur/filtered.hg19.sorted.removeRel.bed"
 #bim_path <- "/u/project/gandalm/cindywen/isoform_twas/genotype/all_data/isec_R2_greater_than_3/ancestry/eur/filtered.hg19.sorted.removeRel.bim"
@@ -26,7 +27,7 @@ metadata <- read.table(metadata_path, header = TRUE, sep = "\t") %>% filter(ance
 #sorted_genotype <- plink_data$genotypes[ids_by_age,]
 #sorted_fam <- plink_data$fam(match)
 # Create a new data frame with matched rows
-geneExp_init_cols <- geneExp[,1:4]
+geneExp_init_cols <- geneExp[,2:4] #removed first column because first and second column are identical
 geneExp_subj_cols <- geneExp[,5:ncol(geneExp)]
 #Add "X" in front of the ids that start with a number to match with the naming scheme in the geneExp file
 ids_by_age <- metadata$Subject %>% gsub("^(\\d)", "X\\1", .) %>% intersect(.,colnames(geneExp_subj_cols))
@@ -36,6 +37,8 @@ geneExp_subj_cols_sorted <- geneExp_subj_cols[,ids_by_age]
 #Define batchsize and batchstep
 batchsize = 150
 batchstep = 25
+function(df, batch_size, method = split, batch_step = NULL, save = FALSE, folder_name = NULL, loc = NULL)
+
 
 geneExp_sorted <- cbind(geneExp_init_cols, geneExp_subj_cols_sorted)
 
