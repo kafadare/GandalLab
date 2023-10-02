@@ -10,18 +10,26 @@ required_packages <- c("magrittr", "genio", "dplyr", "BiocManager", "snpStats", 
 # Install or load missing packages
 load_install_pkg(required_packages)
 
-fetal_path <- "/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.TPM.tsv" #tpm file
-fetal_meta_path <- "/u/project/gandalm/cindywen/isoform_twas/eqtl_new/metadata_654.tsv"
+adult_se <- readRDS("/u/project/gandalm/kafadare/AdultBigBrain_gene_exp_raw_042923.RDS")
 
-adult_path <- "/u/project/gandalm/kafadare/AdultBigBrain_gene_exp_raw_042923.RDS" #tpm file
-adult_meta_path <- "/u/project/gandalm/kafadare/cov_hcp0_gene.txt"
+fetal$genExp.counts <- read.table("/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.scaled.counts.tsv", header = TRUE, sep = "\t") #counts file
+fetal$genExp.tpm <- read.table("/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.TPM.tsv", header = TRUE, sep = "\t") #tpm file
+fetal$raw_meta <- "/u/project/gandalm/cindywen/isoform_twas/eqtl_new/metadata_654.tsv"
+
+adult_se <- readRDS("/u/project/gandalm/kafadare/AdultBigBrain_gene_exp_raw_042923.RDS")
+assays(adult_se) 
+adult$raw_data.counts <- adult_se %>% assay(adult_struct)[1]
+adult$raw_data.tpm <-  adult_se %>% assay(adult_struct)[2]
+write.table(adult.counts,file="adult.counts.scaled.tsv",quote=FALSE, sep='\t')
+write.table(adult.tpm,file="adult.TPM.tsv",quote=FALSE, sep='\t')
+adult$raw_meta <- read.table("/u/project/gandalm/kafadare/cov_hcp0_gene.txt", header = TRUE, sep = "\t")
 adult_ancestry <-  read.table("/u/project/gandalm/kafadare/pops.txt", header = F, sep = "\t", col.names = c("id", "ancestry"))
 
-fetal <- load_genExp_data(fetal_path, fetal_meta_path)
-adult <- load_genExp_data(adult_path, adult_meta_path)
+#fetal <- load_genExp_data(fetal_path, fetal_meta_path)
+#adult <- load_genExp_data(adult_path, adult_meta_path)
 
 #assay adult raw data gene counts
-adult$assay <- assay(adult$raw_data)
+#adult$assay <- assay(adult$raw_data)
 #reformat adult metadata
 adult$raw_meta <- as.data.frame(t(adult$raw_meta))
 colnames(adult$raw_meta) <- adult$raw_meta[1, ]
