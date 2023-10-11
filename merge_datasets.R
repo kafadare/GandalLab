@@ -10,35 +10,37 @@ required_packages <- c("magrittr", "genio", "dplyr", "BiocManager", "snpStats", 
 # Install or load missing packages
 load_install_pkg(required_packages)
 
-adult_se <- readRDS("/u/project/gandalm/kafadare/AdultBigBrain_gene_exp_raw_042923.RDS")
-
+adult_se <- readRDS("/u/project/gandalm/kafadare/AdultBigBrain_tx_exp_raw_042923.RDS")
+#gene_raw = tximport::summarizeToGene(adult_se)
+fetal <- list()
 fetal$genExp.counts <- read.table("/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.scaled.counts.tsv", header = TRUE, sep = "\t") #counts file
 fetal$genExp.tpm <- read.table("/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.TPM.tsv", header = TRUE, sep = "\t") #tpm file
-fetal$raw_meta <- "/u/project/gandalm/cindywen/isoform_twas/eqtl_new/metadata_654.tsv"
+fetal$raw_meta <- read.table("/u/project/gandalm/cindywen/isoform_twas/eqtl_new/metadata_654.tsv", header = TRUE, sep = "\t") 
 
-adult_se <- readRDS("/u/project/gandalm/kafadare/AdultBigBrain_gene_exp_raw_042923.RDS")
-assays(adult_se) 
-adult$raw_data.counts <- adult_se %>% assay(adult_struct)[1]
-adult$raw_data.tpm <-  adult_se %>% assay(adult_struct)[2]
-write.table(adult.counts,file="adult.counts.scaled.tsv",quote=FALSE, sep='\t')
-write.table(adult.tpm,file="adult.TPM.tsv",quote=FALSE, sep='\t')
+adult_se <- readRDS("/u/home/k/kafadare/project-gandalm/AdultBigBrain_gene_exp_raw_042923.RDS")
+assays(adult_se)
+adult <- list()
+adult$genExp.counts <- adult_se %>% assay(.,1)
+adult$genExp.tpm <-  adult_se %>% assay(.,2)
+#write.table(adult$raw_data.counts,file="adult.counts.scaled.tsv",quote=FALSE, sep='\t')x
+#write.table(adult$raw_data.tpm,file="adult.TPM.tsv",quote=FALSE, sep='\t')
 adult$raw_meta <- read.table("/u/project/gandalm/kafadare/cov_hcp0_gene.txt", header = TRUE, sep = "\t")
 adult_ancestry <-  read.table("/u/project/gandalm/kafadare/pops.txt", header = F, sep = "\t", col.names = c("id", "ancestry"))
 
 #fetal <- load_genExp_data(fetal_path, fetal_meta_path)
 #adult <- load_genExp_data(adult_path, adult_meta_path)
-
 #assay adult raw data gene counts
 #adult$assay <- assay(adult$raw_data)
+
 #reformat adult metadata
 adult$raw_meta <- as.data.frame(t(adult$raw_meta))
 colnames(adult$raw_meta) <- adult$raw_meta[1, ]
 adult$raw_meta <- adult$raw_meta[-1, ]
 
 #add adult data batch column in metadata df
-colData(adult$raw_data)$names <- id_format_fix(colData(adult$raw_data)$names)
-batch_index <- match(colData(adult$raw_data)$names,rownames(adult$raw_meta))
-adult$raw_meta$study <- colData(adult$raw_data)$batch[batch_index]
+colData(adult_se)$names <- id_format_fix(colData(adult_se)$names)
+batch_index <- match(colData(adult_se)$names,rownames(adult$raw_meta))
+adult$raw_meta$study <- colData(adult_se)$batch[batch_index]
 
 #get index match for ancestry data, append column to meta data
 adult_ancestry$id <- id_format_fix(adult_ancestry$id)
@@ -64,43 +66,59 @@ adult$eur_meta$Subject[adult$eur_meta$Subject %in% fetal$eur_meta$Subject] <- pa
 combined_meta <- merge(fetal$eur_meta, adult$eur_meta, all = T)
 #write.table(combined_meta, file = paste0(output_dir,"combo_meta.tsv"), row.names = FALSE, sep = "\t")
 
-#Sort both genExp data by age
-#clean up fetal data
-#Add "X" in front of the ids that start with a number to match with the naming scheme in the geneExp file
-f_ids_by_age <- fetal$eur_meta$Subject %>% intersect(.,colnames(fetal$raw_data))
-fetal$sorted_data <- fetal$raw_data[,f_ids_by_age]
+#Sort both genExp data by age, both counts and tpm
+f_ids_by_age <- fetal$eur_meta$Subject %>% intersect(.,colnames(fetal$genExp.counts))
+fetal$sorted.counts<- fetal$genExp.counts[,f_ids_by_age]
+f_ids_by_age <- fetal$eur_meta$Subject %>% intersect(.,colnames(fetal$genExp.tpm))
+fetal$sorted.tpm <- fetal$genExp.tpm[,f_ids_by_age]
+#write.table(fetal$sorted.counts, file = paste0(output_dir,"fetal_eur_counts.tsv"), row.names = FALSE, sep = "\t")
+#write.table(fetal$sorted.tpm, file = paste0(output_dir,"fetal_eur_tpm.tsv"), row.names = FALSE, sep = "\t")
+
 #sort adult data
-colnames(adult$assay) <- id_format_fix(colnames(adult$assay))
-a_ids_by_age <- rownames(adult$eur_meta) %>% intersect(.,colnames(adult$assay))
-adult$sorted_data <- adult$assay[,a_ids_by_age]
+colnames(adult$genExp.counts) <- id_format_fix(colnames(adult$genExp.counts))
+a_ids_by_age <- rownames(adult$eur_meta) %>% intersect(.,colnames(adult$genExp.counts))
+adult$sorted.counts <- adult$genExp.counts[,a_ids_by_age]
+colnames(adult$genExp.tpm) <- id_format_fix(colnames(adult$genExp.tpm))
+a_ids_by_age <- rownames(adult$eur_meta) %>% intersect(.,colnames(adult$genExp.tpm))
+adult$sorted.tpm <- adult$genExp.tpm[,a_ids_by_age]
 
 #remove gencode version number from the adult dataset gene id
-rownames(adult$sorted_data) <- substring(rownames(adult$sorted_data), 1, 15)
+rownames(adult$sorted.counts) <- substring(rownames(adult$sorted.counts), 1, 15)
+rownames(adult$sorted.tpm) <- substring(rownames(adult$sorted.tpm), 1, 15)
 
 #get vector of shared genes and subset both fetal and adult data for NON-shared genes
-shared_genes <- rownames(adult$sorted_data)[which(rownames(adult$sorted_data) %in% rownames(fetal$sorted_data))]
-fetal_only_genes <- fetal$sorted_data[which(!(rownames(fetal$sorted_data) %in% rownames(adult$sorted_data))),]
+shared_genes <- rownames(adult$sorted.counts)[which(rownames(adult$sorted.counts) %in% rownames(fetal$sorted.counts))]
+fetal_only_genes <- fetal$sorted.counts[which(!(rownames(fetal$sorted.counts) %in% rownames(adult$sorted.counts))),]
 fetal_only_genes$genid <- rownames(fetal_only_genes)
-adult_only_genes <- as.data.frame(adult$sorted_data[which(!(rownames(adult$sorted_data) %in% rownames(fetal$sorted_data))),])
+adult_only_genes <- as.data.frame(adult$sorted.counts[which(!(rownames(adult$sorted.counts) %in% rownames(fetal$sorted.counts))),])
 adult_only_genes$genid <- rownames(adult_only_genes)
 
 #combine the two datasets for shared genes
-combined_genExp <- merge(fetal$sorted_data, adult$sorted_data, by = "row.names", all = F, suffixes = c(".f", ".a"))
-colnames(combined_genExp)[colnames(combined_genExp) == 'Row.names'] <- 'genid'
-#write.csv(my_dataframe, file = "output_file.csv", row.names = FALSE)
+comb_genExp.counts <- merge(fetal$sorted.counts, adult$sorted.counts, by = "row.names", all = F, suffixes = c(".f", ".a"))
+colnames(comb_genExp.counts)[colnames(comb_genExp.counts) == 'Row.names'] <- 'genid'
+comb_genExp.tpm <- merge(fetal$sorted.tpm, adult$sorted.tpm, by = "row.names", all = F, suffixes = c(".f", ".a"))
+colnames(comb_genExp.tpm)[colnames(comb_genExp.tpm) == 'Row.names'] <- 'genid'
+#write.csv(my_dataframe, file = "output_file.csv", row.names = FALSE)'
 
 #get Chr number and start and end codon
-bm_gene_fetal <- get_gene_info(fetal_only_genes$genid)
-bm_gene_adult <- get_gene_info(adult_only_genes$genid)
-bm_gene_combo <- get_gene_info(combined_genExp$genid)
+gtf_fetal <- get_gene_info(fetal_only_genes$genid)
+gtf_adult <- get_gene_info(adult_only_genes$genid)
+gtf_comb <- get_gene_info(comb_genExp.counts$genid) 
+
+#save these gtf files too!! ^^^
+write.table(gtf_comb, file = paste0(output_dir,"gene_info_comb.tsv"), row.names = FALSE, sep = "\t")
+write.table(gtf_fetal, file = paste0(output_dir,"gene_info_fetal.tsv"), row.names = FALSE, sep = "\t")
+write.table(gtf_adult, file = paste0(output_dir,"gene_info_adult.tsv"), row.names = FALSE, sep = "\t")
 
 #add gene info to the dataset
-combined_genExp <- merge(bm_gene_combo, combined_genExp, by = "genid")
+comb_genExp.counts <- merge(bm_gene_combo, combined_genExp, by = "genid")
+comb_genExp.counts <- merge(bm_gene_combo, combined_genExp, by = "genid")
 fetal_only_genes <- merge(bm_gene_fetal, fetal_only_genes, by = "genid")
 adult_only_genes <- merge(bm_gene_adult, adult_only_genes, by = "genid")
 
 ##should save again!!!
-write.table(combined_genExp, file = paste0(output_dir,"combo_genExp.tsv"), row.names = FALSE, sep = "\t")
+write.table(comb_genExp.counts, file = paste0(output_dir,"combo_genExp_counts.tsv"), row.names = FALSE, sep = "\t")
+write.table(comb_genExp.tpm, file = paste0(output_dir,"combo_genExp_tpm.tsv"), row.names = FALSE, sep = "\t")
 write.table(fetal_only_genes, file = paste0(output_dir,"fetal_only_genExp.tsv"), row.names = FALSE, sep = "\t")
 write.table(adult_only_genes, file = paste0(output_dir,"adult_only_genExp.tsv"), row.names = FALSE, sep = "\t")
 

@@ -2,6 +2,8 @@
 title: "combined_data_prep"
 output: html_document
 date: "2023-09-20"
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -10,7 +12,7 @@ output_dir <- ("~/project-gandalm/comb_data/")
 source("data_functions.R")
 source("analysis_fcts.R")
 # List of required packages
-required_packages <- c("magrittr", "genio", "dplyr", "BiocManager", "snpStats","data.table", "DESeq2", "WGCNA", "sva", "ggplot2")
+required_packages <- c("magrittr", "genio", "dplyr", "BiocManager", "snpStats","data.table", "DESeq2", "WGCNA", "sva", "ggplot2", "reshape2")
 # Install or load missing packages
 load_install_pkg(required_packages)
 ```
@@ -18,55 +20,114 @@ load_install_pkg(required_packages)
 #Load data
 ```{r}
 fetal_only_genExp <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/fetal_only_genExp.tsv", header = T)
-fetal_only_gtf <- fetal_only_genExp[,1:4]
-colnames(fetal_only_gtf)[2] <- "Chr"
-fetal_only_genExp <- fetal_only_genExp[, c(1, 5:ncol(fetal_only_genExp))]
+gtf_fetal <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/gene_info_fetal.tsv", header = T)
+colnames(gtf_fetal)[2] <- "Chr"
 adult_only_genExp <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/adult_only_genExp.tsv", header = T)
-adult_only_gtf <- adult_only_genes[,1:4]
-adult_only_genExp <- adult_only_genExp[,c(1, 5:ncol(adult_only_genExp))]
-combined_genExp <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/combo_genExp.tsv", header = T)
-combo_gtf <- combined_genExp[,1:4]
-colnames(combo_gtf)[2] <- "Chr"
-combined_genExp <- combined_genExp[,c(1, 5:ncol(combined_genExp))]
+gtf_adult <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/gene_info_adult.tsv", header = T)
+colnames(gtf_adult)[2] <- "Chr"
+comb_genExp.counts <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/combo_genExp_counts.tsv", header = T)
+comb_genExp.tpm <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/combo_genExp_tpm.tsv", header = T)
+gtf_comb <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/gene_info_comb.tsv", header = T)
+colnames(gtf_comb)[2] <- "Chr"
 combo_meta <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/combo_meta.tsv", header = T)
 ##Change names in meta file to match the names in the genExp files (especially for the overlap samples)
 ```
 
-Exploratory analyses on how many genes will be excluded in the combined dataset when removing lowly expressed genes
+FUNCTIONS (will move to separate script later)
 
+``` {r}
+prep_datExp <- function(.data, gtf){
+gtf <- gtf %>% filter(!(Chr %in% c("chrX","chrY","chrM")))
+.data <- .data %>% filter(genid %in% gtf$genid)
+gtf <- gtf %>% filter(genid %in% .data$genid)
+rownames(.data) <- .data$genid
+.data <- .data[,!colnames(.data) %in% "genid"]
+.data <- .data[,-1]
+.data <- round(.data)
+return(.data)
+}
+plot_gen_density <- function(.data, offset = 0.1, title_str = 'Scaled Gene Counts ', xlim = c(-10,30), ylim = c(0,0.5), log = TRUE){
+# View the distribution of expression for each sample.
+# box plot, looking for big differences in read depth (raw counts), symmetry in distribution across samples
+par(mfrow=c(1,2))
+boxplot(.data, range = 0, main = paste(title_str), xlab = 'Samples', xaxt = "n")
+boxplot(log2(offset+.data), range = 0, main = paste('log2(counts+',offset,')'), xlab = 'Samples', xaxt = "n")
+# Histogram/density plot
+# Look for: how well do the distributions line up, outlier samples, zero counts
+par(mfrow=c(1,1))
+i <- 1
+  if(log == TRUE){
+   plot <- plot(density(log2(offset+.data[,i])), main = paste('Scaled Gene    Counts ',title_str), xlab = paste('log2(counts+',offset,')'), 
+        xlim = xlim, ylim = ylim)
+     for(i in 1:ncol(.data)){
+       lines(density(log2(.1+.data[,i])), col = i)
+     }
+  }else{
+  plot <- plot(density(.data[,i]), main = paste('Scaled Gene Counts ',title_str),   xlab = 'Counts', 
+       xlim = xlim, ylim = ylim)
+    for(i in 1:ncol(.data)){
+      lines(density(.data[,i]), col = i)
+    }
+  }
+plot
+return(plot)
+}
+
+#function to remove lowly expressed genes
+rm_low <- function(datExpr,datExpr.tpm, gtf, cutoff = 0.1, percent = 0.25){
+#remove unwanted Chr
+#remove lowly expressed
+# cutoff default 0.1, default 25% subjects
+datExpr.tpm <- datExpr.tpm %>% filter(genid %in% gtf$genid)
+rownames(datExpr.tpm) <- datExpr.tpm$genid
+datExpr.tpm <- datExpr.tpm[,-1]
+# cutoff=0.1, 25% subjects
+keep <- (rowSums(datExpr.tpm > cutoff)) > percent*ncol(datExpr.tpm)
+# # Count filter, use cpm, not raw or scaled from TPM counts!
+# keep <- filterByExpr(datExpr, min.count = (cutoff*100), min.prop=percent)
+datExpr <- datExpr[keep,]
+return(datExpr)
+}
+
+# melted_data <- melt(comb_genExp.counts[,2:ncol(comb_genExp.counts)])
+# ggplot(melted_data, aes(x = value)) +
+#   geom_histogram(binwidth = 1, fill = "lightblue", color = "black") +
+#   labs(title = "Gene Expression Density", x = "Expression Value", y = "Density") + theme_minimal()
+```
+Initial Histogram plots
+
+```{r}
+
+comb_counts_plot <- prep_datExp(comb_genExp.counts,gtf_comb) %>% plot_gen_density(., title_str = "F/A Combined Counts")
+comb_tpm_plot <- prep_datExp(comb_genExp.tpm,gtf_comb) %>% plot_gen_density(., title_str = "F/A Combined Tpm")
+fetal_counts_plot <- prep_datExp(fetal_only_genExp,gtf_fetal) %>% plot_gen_density(., title_str = "Fetal Only Counts", ylim = c(0, 1))
+adult_counts_plot <- prep_datExp(adult_only_genExp,gtf_adult) %>% plot_gen_density(., title_str = "Adult Only Counts", ylim = c(0, 0.3))
+
+```
 # 0. match with GTF file, remove chrX, chrY, chrM
 # 1. round expression for DESeq2
 # 2. remove lowly expressed based on TPM
 ```{r}
 ##### 1
-#datExpr <- fread("/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.scaled.counts.tsv",data.table = F)
-fetal_gtf <- fread("/u/project/gandalm/cindywen/isoform_twas/salmon/gencode.gene.noVersion.tsv", data.table = F)
+#datExpr <- fread("/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.scaled.counts.tsv", data.table = F)
+#gtf_fetal <- fread("/u/project/gandalm/cindywen/isoform_twas/salmon/gencode.gene.noVersion.tsv", data.table = F)
 #fetal_tpm <- fread("/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.TPM.tsv", data.table = F)
-fetal_tpm <- fetal[[1]]
-colnames(fetal_gtf) <- c("Chr", "V2", "V3", "V4", "genid")
-colnames(fetal_tpm)[1] <- "genid"
+#fetal_tpm <- fetal[[1]]
+#fetal_tpm$genid <- rownames(fetal_tpm)
+#colnames(fetal_gtf) <- c("Chr", "V2", "V3", "V4", "genid")
+#colnames(fetal_tpm)[1] <- "genid"
 #walker and hdbr duplicate 1707
 #make hdbr 1707.1
 #names(datExpr)[647] <- "1707.1"
 
-#function to remove chrM, chrX, chrY, and to remove lowly expressed genes
-rm_chr_low <- function(datExpr, gtf, cutoff = 0.1, percent = 0.25){
-gtf <- gtf %>% filter(!(Chr %in% c("chrX","chrY","chrM")))
-datExpr <- datExpr %>% filter(genid %in% gtf$genid)
-gtf <- gtf %>% filter(genid %in% datExpr$genid)
-rownames(datExpr) <- datExpr$genid
-datExpr <- datExpr[,-1]
-datExpr <- round(datExpr)
-#remove lowly expressed
-# cutoff default 0.1, default 25% subjects
-keep <- (rowSums(datExpr > cutoff)) > percent*ncol(datExpr)
-datExpr <- datExpr[keep,]
-return(datExpr)
-# table(keep)
-}
+keep_fetal <- rm_low(fetal_tpm, gtf_fetal, 0.1, 0.25)
 
-keep_fetal <- rm_chr_low(fetal_tpm, fetal_gtf, 0.1, 0.25)
-keep_shared <- rm_chr_low(combined_genExp, combo_gtf, 0.1, 0.25)
+keep_shared <- rm_low(comb_genExp.counts, comb_genExp.tpm, gtf_comb, 0.1, 0.25)
+plots <- list()
+plots[1] <- prep_datExp(keep_shared, gtf_comb) %>% plot_gen_density(., title_str = "Low RM 0.1/0.25", ylim = c(0, 0.5))
+plots[2] <- prep_datExp(keep_shared, gtf_comb) %>% plot_gen_density(., title_str = "Low RM 0.5/0.25", ylim = c(0, 0.5))
+plots[3] <- prep_datExp(keep_shared, gtf_comb) %>% plot_gen_density(., title_str = "Low RM 0.5/0.5", ylim = c(0, 0.5))
+
 ```
 
 # 3. VST normalization and transformation
@@ -109,6 +170,8 @@ outlier.df$c.which.outliers.. <- rownames(outlier.df)
 write.table(outlier.df,paste0(args$outdir, args$level, ".outlier.txt"), sep="\t", quote=F, col.names = F, row.names = F)
 return(datExpr)
 }
+
+
 ```
 
 # 6. pheno.bed for FastQTL; note strand; note 0/1-based
@@ -147,226 +210,4 @@ bed <- bed %>% select(-V4)
 colnames(bed)[1:4] <- c("#Chr", "start", "end", "ID")
 
 write.table(bed, paste0(args$outdir, args$level, ".counts.scaled.normalized.bed"), quote=F, sep="\t", row.names=F, col.names=T)
-```
-
-##Generate Covariates
-To do
-genoPCs (generate using plink)
-compiled picard metrics (? - think about this later)
-metadata loc -- /u/project/gandalm/cindywen/isoform_twas/eqtl_new/metadata_654.tsv, filter by ancestry == "EUR"
-#to know # of HCPs to use, should run MESC and maximize eQTL discovery
-```{r}
-p <- arg_parser("Generate covariates with various number of HCP")
-p <- add_argument(p, "--num_hcp", help="Number of HCP in covariates")
-p <- add_argument(p, "--expr", help="Normalized, ComBat")
-#p <- add_argument(p, "--picard", help="Compiled picard metrics")
-p <- add_argument(p, "--geno_pc", help="Ancestry specific gPC")
-p <- add_argument(p, "--meta", help="Metadata")
-p <- add_argument(p, "--num_gpc", help="Number of gPC in covariates")
-p <- add_argument(p, "--outdir", help="Out dir")
-
-
-args <- parse_args(p)
-num_hcp <- as.numeric(args$num_hcp)
-num_gpc <- as.numeric(args$num_gpc)
-
-# Load data
-datExpr <- fread(args$expr, data.table=F)
-rownames(datExpr) <- datExpr$V1
-datExpr <- datExpr[,-1]
-
-datSeq <- read.table(args$picard, header=T, stringsAsFactors=FALSE)
-seq_row <- rownames(datSeq)
-for (i in 1:length(seq_row)) {
-  seq_row[i] <- strsplit(seq_row[i], split=" ")[[1]][1]
-}
-row.names(datSeq) <- seq_row
-#note 1707.walker and 1707.hdbr in datSeq
-rownames(datSeq)[which(rownames(datSeq) == "1707.hdbr")] <- "1707.1"
-rownames(datSeq)[which(rownames(datSeq) == "1707.walker")] <- "1707"
-datSeq <- datSeq[colnames(datExpr),]
-
-geno_pc <- read.table(args$geno_pc)
-
-meta <- read.table(args$meta, header=T, stringsAsFactors=FALSE)
-
-# HCP
-standardize<- function(X)
-{
-  X = as.matrix(X)
-  # n = dim(X)[1]
-  # p = dim(X)[2]
-
-  X = scale(X, center = TRUE, scale = TRUE)
-  # X = scale(X,center=FALSE, scale=sqrt(apply(X^2,2,sum)))
-
-  # m = apply(X,2,mean)
-  # st = sqrt(apply(X^2,2,sum));
-  # st_mat = matrix(st, nrow = length(st), ncol = dim(X)[2], byrow=FALSE)
-  # X2 = X / st_mat
-  return (X)
-}
-
-hidden_convariate_linear <- function(F,Y,k,lambda,lambda2,lambda3,iter) {
-  ## Use Example
-  # hcp = hidden_convariate_linear(standardize(datSeq), standardize(t(datExpr)),k=10,iter = 100)
-  #
-  # function [Z,B,U,o,error,error1,error2,dz,db,du] = hidden_covariate_linear(F,Y,k,lambda,lambda2,lambda3,iter);
-  # input:
-  #      F: a matrix nxd of known covariates, where n is the number of
-  #      subjects and d is the number of known covariates. *must be standardize (columns have 0 mean and constant SS).
-  #      Y: a matrix of nxg of expression data (must be standardized (columns
-  #      scaled to have constant SS and mean 0). ** use standardize function to standardize F and Y.
-  #      k: number of inferred hidden components (k is an integer)
-  #      lambda, lambda2, lambda3 are model parameters
-  #      (optional) iter: number of iterations (default = 100);
-  #
-  #      note: k>0, lambda>0, lambda2>0, lambda3>0 must be set by the user based on the data at hand. one can set these values
-  #      using cross-validation, by evaluating the "performance" of the  resulting residual data on a desired task.
-  #      typically, if lambda>5, then hidden factors match the known covariates closely.
-  #
-  # objective:
-  #
-  # this function solves the following problem:
-  # argmin_{Z,B,U}   ||Y-Z*B||_2 + \lambda*||Z-F*U||_2 + \lambda2*||B||_2 + \lambda_3||U||_2
-  #
-  # output:
-  #      Z: matrix of hidden components, dimensionality: nxk
-  #      B: matrix of effects of hidden components, dimensionality: kxg
-  #      o: value of objective function on consecutive iterations.
-  #
-  # to use the residual data: Residual = Y - Z*B
-  library(MASS)
-  library(pracma)
-
-  tol = 1e-6;
-
-  U = matrix(0, nrow=dim(F)[2],k)
-  Z = matrix(0, nrow=dim(F)[1],k)
-  B = matrix(runif(dim(Z)[2]*dim(Y)[2]), nrow=dim(Z)[2], ncol=dim(Y)[2])
-  F = as.matrix(F)
-
-  n1 = dim(F)[1]
-  d1 = dim(F)[2]
-
-  n2 = dim(Y)[1]
-  d2 = dim(Y)[2]
-
-  if(n1!=n2)    stop("number of rows in F and Y must agree")
-
-  if (k<1 | lambda<1e-6 | lambda2<1e-6 | lambda3<1e-6 ) {
-    stop("lambda, lambda2, lambda3 must be positive and/or k must be an integer");
-  }
-
-  o = vector(length=iter)
-
-  for (ii in 1:iter) {
-    o[ii] = sum((Y - Z%*%B)^2) + sum((Z -  F%*%U)^2)*lambda + (sum(B^2))*lambda2 + lambda3*(sum(U^2));
-    Z = (Y %*% t(B) + lambda * F %*%U) %*% ginv(B %*% t(B) + lambda * diag(dim(B)[1]))
-    B = mldivide(t(Z) %*% Z + lambda2 * diag(dim(Z)[2]), (t(Z) %*% Y))
-    U = mldivide(t(F) %*% F * lambda + lambda3 * diag(dim(U)[1]), lambda * t(F) %*% Z)
-
-    if(ii > 1 &&  (abs(o[ii]-o[ii-1])/o[ii]) < tol)  break
-  }
-
-  error =  sum((Y - Z%*%B)^2) / sum(Y^2)  + sum((Z - F%*%U)^2)/sum((F%*%U)^2)
-  error1 = sum((Y - Z%*%B)^2) / sum(Y^2);
-  error2 = sum((Z - F%*%U)^2) / sum((F%*%U)^2);
-
-  dz = Z%*%(B%*%t(B) + lambda*diag(dim(B)[1]))-(Y%*%t(B) + lambda*F%*%U);
-  db = (t(Z)%*%Z + lambda2*diag(dim(Z)[2]))%*%B - t(Z)%*%Y;
-  du = (t(F)%*%F*lambda + lambda3*diag(dim(U)[1]))%*%U-lambda*t(F)%*%Z;
-
-
-  dataout = list(Z = Z, B = B, U = U)
-  return(dataout)
-}
-
-# Error in svd(A) : infinite or missing values in 'x'
-# scale a column with all 1s give NaN
-# filter for columns with non-zero variance
-datSeq <- Filter(var, datSeq)
-
-
-set.seed(123)
-hcp <- hidden_convariate_linear(standardize(datSeq), standardize(t(datExpr)), lambda=5,lambda2=1, lambda3=1, k=num_hcp, iter=100)
-hcpMat <- cbind(1, hcp$Z) 
-
-
-# Generate covariates (age + sex + gPC + HCP)
-n_subj <- ncol(datExpr)
-cov <- matrix(nrow = 2 + num_hcp + num_gpc , ncol = n_subj + 1)
-cov <- as.data.frame(cov)
-
-colnames(cov) <- c("id",colnames(datExpr))
-for (i in 1:num_gpc) {
-  cov[i,1] <- paste0("PC",i)
-}
-cov[num_gpc + 1, 1] <- "sex"
-for (i in (num_gpc + 2):(num_gpc + 1 + num_hcp)) {
-  cov[i,1] <- paste0("HCP",i-1-num_gpc)
-}
-cov[nrow(cov),1] <- "age"
-
-# gPC
-geno_pc <- geno_pc[,-1]
-rownames(geno_pc) <- geno_pc[,1]
-geno_pc <- geno_pc[,-1]
-# first 2504 are 1kg
-geno_pc <- geno_pc[2505:nrow(geno_pc),]
-
-for (i in 2:ncol(cov)){
-  sample <- colnames(cov)[i]
-  for (j in 1:num_gpc) {
-    cov[j,sample] <- geno_pc[sample,j]
-    }
-}
-
-# sex and age
-row.names(meta) <- meta[,1]
-for (i in 2:ncol(cov)){
-  sample <- colnames(cov)[i]
-  cov[nrow(cov),sample] <- meta[sample,"Age"]
-  cov[1 + num_gpc, sample] <- meta[sample,"inferSex"]
-}
-
-# HCP
-hcp_cov <- hcpMat[,2:(num_hcp+1)]
-hcp_cov <- as.data.frame(hcp_cov)
-for (i in 2:ncol(cov)) {
-  sample <- colnames(cov)[i]
-  for(j in (num_gpc + 2):(num_gpc + 1 + num_hcp)) {
-    cov[j,sample] <- hcp_cov[sample,j-1-num_gpc]
-  }
-}
-
-
-write.table(cov, paste0(args$outdir, num_hcp, "hcp_cov.txt"), quote = F, row.names = F, col.names = T, sep = "\t")
-
-
-
-```
-
-
-Explore
-1) the nature of the genes that are fetal only/adult only
-2) the age distribution of the combined dataset
-
-```{r}
-# Choose 20 random rows
-sample_genes <- fetal_only_genExp[(sample(1:nrow(fetal_only_genExp), 20)),]
-
-# Create subplots using ggplot2
-plots_list <- lapply(as.data.table(5:ncol(fetal_only_genExp)), function(col_index) {
-  ggplot(sample_genes, aes(x = .data[[col_index]])) +
-    geom_density(fill = "lightblue", color = "black") +
-    labs(title = colnames(fetal_only_genExp)[col_index], x = NULL, y = "Density") +
-    theme_minimal()
-})
-
-# Combine and print the plots
-library(gridExtra)
-grid.arrange(grobs = plots_list, ncol = 4)
-
-
 ```
