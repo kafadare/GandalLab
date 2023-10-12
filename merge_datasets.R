@@ -2,26 +2,35 @@
 
 #Set up packages and functions
 setwd("~/project-gandalm/GandalLab")
-output_dir <- ("~/project-gandalm/comb_data/")
+output_dir <- ("~/project-gandalm/comb_data/full_set/")
 source("data_functions.R")
 source("analysis_fcts.R")
 # List of required packages
-required_packages <- c("magrittr", "genio", "dplyr", "BiocManager", "snpStats", "SummarizedExperiment")
+#required_packages <- c("magrittr", "genio", "dplyr", "BiocManager", "SummarizedExperiment")
+required_packages <- c("magrittr","dplyr", "SummarizedExperiment")
 # Install or load missing packages
-load_install_pkg(required_packages)
+#load_install_pkg(required_packages)
+library(magrittr)
+library(dplyr)
+library(SummarizedExperiment)
+library(tximport)
+library(tximeta)
 
-adult_se <- readRDS("/u/project/gandalm/kafadare/AdultBigBrain_tx_exp_raw_042923.RDS")
-#gene_raw = tximport::summarizeToGene(adult_se)
 fetal <- list()
 fetal$genExp.counts <- read.table("/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.scaled.counts.tsv", header = TRUE, sep = "\t") #counts file
 fetal$genExp.tpm <- read.table("/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.TPM.tsv", header = TRUE, sep = "\t") #tpm file
 fetal$raw_meta <- read.table("/u/project/gandalm/cindywen/isoform_twas/eqtl_new/metadata_654.tsv", header = TRUE, sep = "\t") 
 
-adult_se <- readRDS("/u/home/k/kafadare/project-gandalm/AdultBigBrain_gene_exp_raw_042923.RDS")
-assays(adult_se)
+#adult_se <- readRDS("/u/home/k/kafadare/project-gandalm/AdultBigBrain_gene_exp_raw_042923.RDS")
+adult_se <- readRDS("/u/project/gandalm/kafadare/AdultBigBrain_tx_exp_raw_042923.RDS")
+gene_raw = tximeta::summarizeToGene(adult_se)
+#assays(adult_se)
+#colData(adult_se)$names <- id_format_fix(colData(adult_se)$names)
 adult <- list()
 adult$genExp.counts <- adult_se %>% assay(.,1)
+colnames(adult$genExp.counts) <- id_format_fix(colnames(adult$genExp.counts))
 adult$genExp.tpm <-  adult_se %>% assay(.,2)
+colnames(adult$genExp.tpm) <- id_format_fix(colnames(adult$genExp.tpm))
 #write.table(adult$raw_data.counts,file="adult.counts.scaled.tsv",quote=FALSE, sep='\t')x
 #write.table(adult$raw_data.tpm,file="adult.TPM.tsv",quote=FALSE, sep='\t')
 adult$raw_meta <- read.table("/u/project/gandalm/kafadare/cov_hcp0_gene.txt", header = TRUE, sep = "\t")
@@ -36,9 +45,7 @@ adult_ancestry <-  read.table("/u/project/gandalm/kafadare/pops.txt", header = F
 adult$raw_meta <- as.data.frame(t(adult$raw_meta))
 colnames(adult$raw_meta) <- adult$raw_meta[1, ]
 adult$raw_meta <- adult$raw_meta[-1, ]
-
 #add adult data batch column in metadata df
-colData(adult_se)$names <- id_format_fix(colData(adult_se)$names)
 batch_index <- match(colData(adult_se)$names,rownames(adult$raw_meta))
 adult$raw_meta$study <- colData(adult_se)$batch[batch_index]
 
@@ -111,10 +118,10 @@ write.table(gtf_fetal, file = paste0(output_dir,"gene_info_fetal.tsv"), row.name
 write.table(gtf_adult, file = paste0(output_dir,"gene_info_adult.tsv"), row.names = FALSE, sep = "\t")
 
 #add gene info to the dataset
-comb_genExp.counts <- merge(bm_gene_combo, combined_genExp, by = "genid")
-comb_genExp.counts <- merge(bm_gene_combo, combined_genExp, by = "genid")
-fetal_only_genes <- merge(bm_gene_fetal, fetal_only_genes, by = "genid")
-adult_only_genes <- merge(bm_gene_adult, adult_only_genes, by = "genid")
+#comb_genExp.counts <- merge(gtf_comb, combined_genExp, by = "genid")
+#comb_genExp.counts <- merge(gtf_comb, combined_genExp, by = "genid")
+#fetal_only_genes <- merge(gtf_fetal, fetal_only_genes, by = "genid")
+#adult_only_genes <- merge(gtf_adult, adult_only_genes, by = "genid")
 
 ##should save again!!!
 write.table(comb_genExp.counts, file = paste0(output_dir,"combo_genExp_counts.tsv"), row.names = FALSE, sep = "\t")

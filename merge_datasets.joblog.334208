@@ -1,0 +1,24 @@
+ 
+Job merge_datasets, ID no. 334208 started on:   n7456
+Job merge_datasets, ID no. 334208 started at:   Thu Oct 12 07:52:41 PDT 2023
+ 
+Loading R/4.3.0
+  Loading requirement: intel/2022.1.1 java/jdk-11.0.14
+	Unloading the conflicting module 'gcc/10.2.0'
+
+
+Loading gcc/9.5.0
+  Unloading conflict: gcc/10.2.0
+Currently Loaded Modulefiles:
+ 1) intel/2022.1.1 <aL>   2) java/jdk-11.0.14 <aL>   3) R/4.3.0   4) gcc/9.5.0  
+
+Key:
+<module-tag>  <aL>=auto-loaded  
+
+R CMD BATCH --no-save --no-restore  merge_datasets.R merge_datasets.out.334208
+real 1.53
+user 0.24
+sys 0.18
+ 
+Job merge_datasets, ID no. 334208 finished at:  Thu Oct 12 07:52:43 PDT 2023
+ 

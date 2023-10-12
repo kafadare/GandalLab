@@ -12,7 +12,7 @@ output_dir <- ("~/project-gandalm/comb_data/")
 source("data_functions.R")
 source("analysis_fcts.R")
 # List of required packages
-required_packages <- c("magrittr", "genio", "dplyr", "BiocManager", "snpStats","data.table", "DESeq2", "WGCNA", "sva", "ggplot2", "reshape2")
+required_packages <- c("magrittr", "dplyr", "data.table", "DESeq2", "WGCNA", "sva", "ggplot2", "reshape2")
 # Install or load missing packages
 load_install_pkg(required_packages)
 ```
@@ -36,6 +36,7 @@ combo_meta <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/combo_met
 FUNCTIONS (will move to separate script later)
 
 ``` {r}
+#prep data
 prep_datExp <- function(.data, gtf){
 gtf <- gtf %>% filter(!(Chr %in% c("chrX","chrY","chrM")))
 .data <- .data %>% filter(genid %in% gtf$genid)
@@ -46,6 +47,8 @@ rownames(.data) <- .data$genid
 .data <- round(.data)
 return(.data)
 }
+
+#function to plot gene density
 plot_gen_density <- function(.data, offset = 0.1, title_str = 'Scaled Gene Counts ', xlim = c(-10,30), ylim = c(0,0.5), log = TRUE){
 # View the distribution of expression for each sample.
 # box plot, looking for big differences in read depth (raw counts), symmetry in distribution across samples
@@ -171,6 +174,10 @@ write.table(outlier.df,paste0(args$outdir, args$level, ".outlier.txt"), sep="\t"
 return(datExpr)
 }
 
+norm_shared <- norm_batch(keep_shared, combo_meta)
+plots[1] <- prep_datExp(keep_shared, gtf_comb) %>% plot_gen_density(., title_str = "Low RM 0.1/0.25", ylim = c(0, 0.5))
+plots[2] <- prep_datExp(keep_shared, gtf_comb) %>% plot_gen_density(., title_str = "Low RM 0.5/0.25", ylim = c(0, 0.5))
+plots[3] <- prep_datExp(keep_shared, gtf_comb) %>% plot_gen_density(., title_str = "Low RM 0.5/0.5", ylim = c(0, 0.5))
 
 ```
 

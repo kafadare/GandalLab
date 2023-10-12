@@ -1,0 +1,8 @@
+Modulefile for intel is already loaded
+Installing missing packages: genio, dplyr, BiocManager, snpStats, SummarizedExperiment
+Installing packages into '/u/home/k/kafadare/R/x86_64-pc-linux-gnu-library/4.2.2'
+(as 'lib' is unspecified)
+Error in contrib.url(repos, type) : 
+  trying to use CRAN without setting a mirror
+Calls: load_install_pkg -> install.packages -> startsWith -> contrib.url
+Execution halted
