@@ -26,7 +26,7 @@ load_data <- function(names = c("data"), ...){
 }
   
   
-  tpm_file_ext <- tools::file_ext(genExp_counts_path)
+#  tpm_file_ext <- tools::file_ext(genExp_counts_path)
 #   if (tpm_file_ext %in% c("csv", "txt", "tsv")) {
 #     # Read data from .csv or .txt file
 #     tpm <- read.table(tpm_path, header = TRUE, sep = "\t")
