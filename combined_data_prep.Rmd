@@ -36,62 +36,6 @@ combo_meta <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/combo_met
 FUNCTIONS (will move to separate script later)
 
 ``` {r}
-#prep data
-prep_datExp <- function(.data, gtf){
-gtf <- gtf %>% filter(!(Chr %in% c("chrX","chrY","chrM")))
-.data <- .data %>% filter(genid %in% gtf$genid)
-gtf <- gtf %>% filter(genid %in% .data$genid)
-rownames(.data) <- .data$genid
-.data <- .data[,!colnames(.data) %in% "genid"]
-.data <- .data[,-1]
-.data <- round(.data)
-return(.data)
-}
-
-#function to plot gene density
-plot_gen_density <- function(.data, offset = 0.1, title_str = 'Scaled Gene Counts ', xlim = c(-10,30), ylim = c(0,0.5), log = TRUE){
-# View the distribution of expression for each sample.
-# box plot, looking for big differences in read depth (raw counts), symmetry in distribution across samples
-par(mfrow=c(1,2))
-boxplot(.data, range = 0, main = paste(title_str), xlab = 'Samples', xaxt = "n")
-boxplot(log2(offset+.data), range = 0, main = paste('log2(counts+',offset,')'), xlab = 'Samples', xaxt = "n")
-# Histogram/density plot
-# Look for: how well do the distributions line up, outlier samples, zero counts
-par(mfrow=c(1,1))
-i <- 1
-  if(log == TRUE){
-   plot <- plot(density(log2(offset+.data[,i])), main = paste('Scaled Gene    Counts ',title_str), xlab = paste('log2(counts+',offset,')'), 
-        xlim = xlim, ylim = ylim)
-     for(i in 1:ncol(.data)){
-       lines(density(log2(.1+.data[,i])), col = i)
-     }
-  }else{
-  plot <- plot(density(.data[,i]), main = paste('Scaled Gene Counts ',title_str),   xlab = 'Counts', 
-       xlim = xlim, ylim = ylim)
-    for(i in 1:ncol(.data)){
-      lines(density(.data[,i]), col = i)
-    }
-  }
-plot
-return(plot)
-}
-
-#function to remove lowly expressed genes
-rm_low <- function(datExpr,datExpr.tpm, gtf, cutoff = 0.1, percent = 0.25){
-#remove unwanted Chr
-#remove lowly expressed
-# cutoff default 0.1, default 25% subjects
-datExpr.tpm <- datExpr.tpm %>% filter(genid %in% gtf$genid)
-rownames(datExpr.tpm) <- datExpr.tpm$genid
-datExpr.tpm <- datExpr.tpm[,-1]
-# cutoff=0.1, 25% subjects
-keep <- (rowSums(datExpr.tpm > cutoff)) > percent*ncol(datExpr.tpm)
-# # Count filter, use cpm, not raw or scaled from TPM counts!
-# keep <- filterByExpr(datExpr, min.count = (cutoff*100), min.prop=percent)
-datExpr <- datExpr[keep,]
-return(datExpr)
-}
-
 # melted_data <- melt(comb_genExp.counts[,2:ncol(comb_genExp.counts)])
 # ggplot(melted_data, aes(x = value)) +
 #   geom_histogram(binwidth = 1, fill = "lightblue", color = "black") +
