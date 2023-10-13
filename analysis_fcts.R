@@ -71,7 +71,7 @@ get_gene_info <- function(genid){
                   filters = c('ensembl_gene_id'),
                   mart = ensembl,
                   values = genid)
-  colnames(bm_gene) = c('genid','#Chr','start','end')
+  colnames(bm_gene) = c('genid','Chr','start','end')
   return(bm_gene)
 }
 
