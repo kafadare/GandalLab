@@ -2,7 +2,7 @@ load_data <- function(names = c("data"), ...){
   # Determine the number of arguments
   num_files <- length(list(...))
   num_names <- length(names)
-  if (num_args != num_names){
+  if (num_files != num_names){
     stop(paste0("You provided ", num_args, " files but only ", num_names, " names. There should be a name matching each file to be loaded"))
   }
   # Initialize an empty list to store the results
