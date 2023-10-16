@@ -128,5 +128,5 @@ rm_low <- function(.data,datExpr.tpm, gtf, cutoff = 0.1, percent = 0.25){
   # # Count filter, use cpm, not raw or scaled from TPM counts!
   # keep <- filterByExpr(datExpr, min.count = (cutoff*100), min.prop=percent)
   datExpr <- .data[keep,]
-  return(.data)
+  return(datExpr)
 }

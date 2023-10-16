@@ -22,7 +22,7 @@ fetal$tpm$genid <- rownames(fetal$tpm)
 gtf_fetal <- get_gene_info(fetal$counts$genid)
 #All fetal genes
 # Save the plot
-pdf(paste0(output_dir,"fetal_all_counts.pdf"))
+pdf(paste0(plot_dir,"fetal_all_counts.pdf"))
 # 2. Create a plot
 all_plot_counts <- prep_datExp(fetal$counts, gtf_fetal) %>% plot_gen_density(., title_str = "Fetal Counts All", ylim = c(0, 0.75))
 # Close the pdf file
@@ -30,14 +30,15 @@ dev.off()
 # Save the plot
 pdf(paste0(plot_dir,"fetal_all_tpm.pdf"))
 # 2. Create a plot
-all_plot_tpm <- prep_datExp(fetal$tpm, gtf_fetal) %>% plot_gen_density(., title_str = "Fetal Tpm All", ylim = c(0, 0.75))
+all_plot_tpm <- prep_datExp(fetal$tpm, gtf_fetal) %>% plot_gen_density(., title_str = "Fetal Tpm All", ylim = c(0, 2.0))
 # Close the pdf file
 dev.off() 
 
 #Remove lowly expressed genes <0.1 25%
-fetal_lowrm <- prep_datExp(fetal$counts, gtf_fetal) %>% rm_low(., fetal$tpm, cutoff = 0.1, percent = 0.25)
-fetal_lowrm_tpm <- prep_datExp(fetal$tpm, gtf_fetal) %>% rm_low(., fetal$tpm, cutoff = 0.1, percent = 0.25)
-print(paste("Number of genes before removal:", dim(fetal$counts), "Number of genes after removing lowly expressed:",dim(fetal_lowrm), dim(fetal_lowrm_tpm), sep="\n"))
+fetal_lowrm <- prep_datExp(fetal$counts, gtf_fetal) %>% rm_low(., fetal$tpm, gtf_fetal, cutoff = 0.1, percent = 0.25)
+fetal_lowrm_tpm <- prep_datExp(fetal$tpm, gtf_fetal) %>% rm_low(., fetal$tpm, gtf_fetal, cutoff = 0.1, percent = 0.25)
+
+print(cat("Number of genes before removal:", dim(fetal$counts), "Number of genes after removing lowly expressed:",dim(fetal_lowrm), sep='\n'))
 
 #save the data with lowly expressed removed
 write.table(fetal_lowrm,file = paste0(output_dir,"fetal_rmlow_counts.tsv"),quote=FALSE, sep='\t')

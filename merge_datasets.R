@@ -2,7 +2,6 @@
 
 #Set up packages and functions
 setwd("~/project-gandalm/GandalLab")
-input_dir("")
 output_dir <- ("~/project-gandalm/comb_data/new_data/")
 source("data_functions.R")
 source("analysis_fcts.R")
@@ -29,14 +28,15 @@ library(dplyr)
 # 
 # args <- parse_args(p)
 
-#define paths
-fetal_counts_path <- - "~/project-gandalm/fetal_rmlow_counts.tsv"
+#fetal paths
+fetal_counts_path <- "~/project-gandalm/fetal_rmlow_counts.tsv"
 fetal_tpm_path <- "~/project-gandalm/fetal_rmlow_tpm.tsv"
 #fetal_counts_path <- "/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.scaled.counts.tsv"
 #fetal_tpm_path <- "/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.TPM.tsv"
 fetal_meta_path <- "/u/project/gandalm/cindywen/isoform_twas/eqtl_new/metadata_654.tsv"
-adult_counts_path <- "~/project-gandalm/GandalLab/adult.counts.scaled.tsv"
-adult_tpm_path <- "~/project-gandalm/GandalLab/adult.TPM.tsv"
+#adult paths
+adult_counts_path <- "~/project-gandalm/adult.counts.scaled.tsv"
+adult_tpm_path <- "~/project-gandalm/adult.TPM.tsv"
 adult_meta_path <- "/u/project/gandalm/kafadare/cov_hcp0_gene.txt"
 #load data for fetal & adult
 fetal <- load_data(names = c("counts", "tpm", "meta"), fetal_counts_path, fetal_tpm_path, fetal_meta_path)
@@ -79,7 +79,8 @@ adult$eur_meta$ancestry <- tolower(adult$eur_meta$ancestry)
 #combine metadata
 #change ids to match the merge ids from genExp merge
 fetal$eur_meta$Subject <- fetal$eur_meta$Subject %>% gsub("^(\\d)", "X\\1", .)
-fetal$eur_meta$Subject[fetal$eur_meta$Subject %in% adult$eur_meta$Subject] <- paste0(fetal$eur_meta$Subject, ".f")[fetal$eur_meta$Subject %in% adult$eur_meta$Subject]
+fetal$eur_meta$Su
+bject[fetal$eur_meta$Subject %in% adult$eur_meta$Subject] <- paste0(fetal$eur_meta$Subject, ".f")[fetal$eur_meta$Subject %in% adult$eur_meta$Subject]
 adult$eur_meta$Subject[adult$eur_meta$Subject %in% fetal$eur_meta$Subject] <- paste0(adult$eur_meta$Subject, ".a")[adult$eur_meta$Subject %in% fetal$eur_meta$Subject]
 combined_meta <- merge(fetal$eur_meta, adult$eur_meta, all = T)
 #write.table(combined_meta, file = paste0(output_dir,"combo_meta.tsv"), row.names = FALSE, sep = "\t")
