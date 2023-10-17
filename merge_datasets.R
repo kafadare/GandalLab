@@ -51,7 +51,7 @@ adult$ancestry <-  read.table("/u/project/gandalm/kafadare/pops.txt", header = F
 colnames(adult$counts) <- id_format_fix(colnames(adult$counts))
 colnames(adult$tpm) <- id_format_fix(colnames(adult$tpm))
 
-#fetal$genExp.tpm <- read.table("/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.TPM.tsv", header = TRUE, sep = "\t") #tpm file
+#fetal$tpm <- read.table("/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.TPM.tsv", header = TRUE, sep = "\t") #tpm file
 
 #reformat adult metadata and add batch column from the RDS file
 adult_se <- readRDS("/u/home/k/kafadare/project-gandalm/AdultBigBrain_gene_exp_raw_042923.RDS")
@@ -85,26 +85,25 @@ adult$eur_meta$ancestry <- tolower(adult$eur_meta$ancestry)
 #combine metadata
 #change ids to match the merge ids from genExp merge
 fetal$eur_meta$Subject <- fetal$eur_meta$Subject %>% gsub("^(\\d)", "X\\1", .)
-fetal$eur_meta$Subject[fetal$eur_meta$Subject %in% adult$eur_meta$Subject] <- paste0(fetal$eur_meta$Subject, ".f")[fetal$eur_meta$Subject %in% adult$eur_meta$Subject]
 adult$eur_meta$Subject[adult$eur_meta$Subject %in% fetal$eur_meta$Subject] <- paste0(adult$eur_meta$Subject, ".a")[adult$eur_meta$Subject %in% fetal$eur_meta$Subject]
 combined_meta <- merge(fetal$eur_meta, adult$eur_meta, all = T)
 #write.table(combined_meta, file = paste0(output_dir,"combo_meta.tsv"), row.names = FALSE, sep = "\t")
 
 #Sort both genExp data by age, both counts and tpm
-f_ids_by_age <- fetal$eur_meta$Subject %>% intersect(.,colnames(fetal$genExp.counts))
-fetal$sorted.counts<- fetal$genExp.counts[,f_ids_by_age]
-f_ids_by_age <- fetal$eur_meta$Subject %>% intersect(.,colnames(fetal$genExp.tpm))
-fetal$sorted.tpm <- fetal$genExp.tpm[,f_ids_by_age]
+f_ids_by_age <- fetal$eur_meta$Subject %>% intersect(.,colnames(fetal$counts))
+fetal$sorted.counts<- fetal$counts[,f_ids_by_age]
+f_ids_by_age <- fetal$eur_meta$Subject %>% intersect(.,colnames(fetal$tpm))
+fetal$sorted.tpm <- fetal$tpm[,f_ids_by_age]
 #write.table(fetal$sorted.counts, file = paste0(output_dir,"fetal_eur_counts.tsv"), row.names = FALSE, sep = "\t")
 #write.table(fetal$sorted.tpm, file = paste0(output_dir,"fetal_eur_tpm.tsv"), row.names = FALSE, sep = "\t")
 
 #sort adult data
-colnames(adult$genExp.counts) <- id_format_fix(colnames(adult$genExp.counts))
-a_ids_by_age <- rownames(adult$eur_meta) %>% intersect(.,colnames(adult$genExp.counts))
-adult$sorted.counts <- adult$genExp.counts[,a_ids_by_age]
-colnames(adult$genExp.tpm) <- id_format_fix(colnames(adult$genExp.tpm))
-a_ids_by_age <- rownames(adult$eur_meta) %>% intersect(.,colnames(adult$genExp.tpm))
-adult$sorted.tpm <- adult$genExp.tpm[,a_ids_by_age]
+colnames(adult$counts) <- id_format_fix(colnames(adult$counts))
+a_ids_by_age <- rownames(adult$eur_meta) %>% intersect(.,colnames(adult$counts))
+adult$sorted.counts <- adult$counts[,a_ids_by_age]
+colnames(adult$tpm) <- id_format_fix(colnames(adult$tpm))
+a_ids_by_age <- rownames(adult$eur_meta) %>% intersect(.,colnames(adult$tpm))
+adult$sorted.tpm <- adult$tpm[,a_ids_by_age]
 
 #remove gencode version number from the adult dataset gene id
 rownames(adult$sorted.counts) <- substring(rownames(adult$sorted.counts), 1, 15)
