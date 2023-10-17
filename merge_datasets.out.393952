@@ -1,0 +1,242 @@
+
+R version 4.2.2 (2022-10-31) -- "Innocent and Trusting"
+Copyright (C) 2022 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> ##Combine geneExp datasets and metadata for fetal and adult EUR
+> 
+> #Set up packages and functions
+> setwd("~/project-gandalm/GandalLab")
+> output_dir <- ("~/project-gandalm/comb_data/new_data/")
+> source("data_functions.R")
+> source("analysis_fcts.R")
+> # List of required packages
+> #required_packages <- c("magrittr", "genio", "dplyr", "BiocManager", "SummarizedExperiment")
+> required_packages <- c("magrittr","dplyr")
+> # Install or load missing packages
+> load_install_pkg(required_packages)
+Loading required package: magrittr
+Loading required package: dplyr
+
+Attaching package: 'dplyr'
+
+The following objects are masked from 'package:stats':
+
+    filter, lag
+
+The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union
+
+[[1]]
+[1] TRUE
+
+[[2]]
+[1] TRUE
+
+> #library(magrittr)
+> #library(dplyr)
+> #library(SummarizedExperiment)
+> #library(argparser)
+> #library(tximport)
+> #library(tximeta)
+> 
+> if (!require("BiocManager", quietly = TRUE))
++     install.packages("BiocManager")
+Bioconductor version '3.16' is out-of-date; the current release version '3.17'
+  is available with R version '4.3'; see https://bioconductor.org/install
+> 
+> BiocManager::install("SummarizedExperiment")
+Bioconductor version 3.16 (BiocManager 1.30.19), R 4.2.2 (2022-10-31)
+Installation paths not writeable, unable to update packages
+  path: /u/local/apps/R/4.2.2/gcc-4.8.5/intel-2020.4/BIO_LIBS
+  packages:
+    AnnotationDbi, BH, BSgenome, BSgenome.Hsapiens.UCSC.hg38, BiocFileCache,
+    BiocManager, BiocParallel, FNN, Formula, GenomeInfoDb, GenomicAlignments,
+    GenomicFeatures, GenomicRanges, Hmisc, RCurl, RSQLite, Rcpp, RcppAnnoy,
+    RcppTOML, S4Vectors, Seurat, SeuratObject, Signac, SnowballC,
+    VariantAnnotation, XML, askpass, biomaRt, blob, broom, bslib, cachem,
+    checkmate, cli, colorspace, commonmark, covr, cpp11, credentials, curl,
+    data.table, dbplyr, deldir, digest, dotCall64, downlit, dplyr, dqrng,
+    dtplyr, evaluate, fansi, fastmap, fastmatch, fields, fitdistrplus,
+    fontawesome, forcats, formatR, fs, future, future.apply, gargle, gert,
+    ggrepel, gh, googledrive, googlesheets4, gtable, haven, hdf5r, highr, hms,
+    htmltools, htmlwidgets, httpuv, httr, hunspell, interp, isoband, jsonlite,
+    knitr, labeling, later, listenv, lubridate, markdown, matrixStats, modelr,
+    multiplex, mvtnorm, network, openssl, parallelly, patchwork, pbapply,
+    pillar, pkgbuild, pkgdown, pkgload, plotly, plyr, polyclip, prettyunits,
+    processx, profvis, progressr, promises, ps, purrr, ragg, readr, readxl,
+    rematch, remotes, reticulate, rmarkdown, roxygen2, rstudioapi, sass,
+    scattermore, sctransform, shiny, sna, sourcetools, sp, sparsesvd,
+    spatstat.data, spatstat.explore, spatstat.geom, spatstat.random,
+    spatstat.sparse, spatstat.utils, spelling, statnet.common, stringi, sys,
+    systemfonts, testthat, textshaping, tibble, tidyr, tidyverse, timechange,
+    tinytex, tzdb, usethis, utf8, uuid, uwot, vctrs, viridis, viridisLite,
+    vroom, waldo, whisker, xfun, xml2, yaml, zip, zoo
+  path: /u/local/apps/R/4.2.2/gcc-4.8.5/intel-2020.4/lib64/R/library
+  packages:
+    IRkernel, KernSmooth, MASS, Matrix, boot, class, codetools, foreign,
+    igraph, lattice, mgcv, nlme, nnet, pbdZMQ, repr, rlang, rpart, spatial,
+    survival
+Old packages: 'DEoptimR', 'RcppArmadillo', 'ggplot2', 'withr'
+Warning message:
+package(s) not installed when version(s) same as or greater than current; use
+  `force = TRUE` to re-install: 'SummarizedExperiment' 
+> library(SummarizedExperiment)
+Loading required package: MatrixGenerics
+Loading required package: matrixStats
+
+Attaching package: 'matrixStats'
+
+The following object is masked from 'package:dplyr':
+
+    count
+
+
+Attaching package: 'MatrixGenerics'
+
+The following objects are masked from 'package:matrixStats':
+
+    colAlls, colAnyNAs, colAnys, colAvgsPerRowSet, colCollapse,
+    colCounts, colCummaxs, colCummins, colCumprods, colCumsums,
+    colDiffs, colIQRDiffs, colIQRs, colLogSumExps, colMadDiffs,
+    colMads, colMaxs, colMeans2, colMedians, colMins, colOrderStats,
+    colProds, colQuantiles, colRanges, colRanks, colSdDiffs, colSds,
+    colSums2, colTabulates, colVarDiffs, colVars, colWeightedMads,
+    colWeightedMeans, colWeightedMedians, colWeightedSds,
+    colWeightedVars, rowAlls, rowAnyNAs, rowAnys, rowAvgsPerColSet,
+    rowCollapse, rowCounts, rowCummaxs, rowCummins, rowCumprods,
+    rowCumsums, rowDiffs, rowIQRDiffs, rowIQRs, rowLogSumExps,
+    rowMadDiffs, rowMads, rowMaxs, rowMeans2, rowMedians, rowMins,
+    rowOrderStats, rowProds, rowQuantiles, rowRanges, rowRanks,
+    rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,
+    rowWeightedMads, rowWeightedMeans, rowWeightedMedians,
+    rowWeightedSds, rowWeightedVars
+
+Loading required package: GenomicRanges
+Loading required package: stats4
+Loading required package: BiocGenerics
+
+Attaching package: 'BiocGenerics'
+
+The following objects are masked from 'package:dplyr':
+
+    combine, intersect, setdiff, union
+
+The following objects are masked from 'package:stats':
+
+    IQR, mad, sd, var, xtabs
+
+The following objects are masked from 'package:base':
+
+    Filter, Find, Map, Position, Reduce, anyDuplicated, aperm, append,
+    as.data.frame, basename, cbind, colnames, dirname, do.call,
+    duplicated, eval, evalq, get, grep, grepl, intersect, is.unsorted,
+    lapply, mapply, match, mget, order, paste, pmax, pmax.int, pmin,
+    pmin.int, rank, rbind, rownames, sapply, setdiff, sort, table,
+    tapply, union, unique, unsplit, which.max, which.min
+
+Loading required package: S4Vectors
+
+Attaching package: 'S4Vectors'
+
+The following objects are masked from 'package:dplyr':
+
+    first, rename
+
+The following objects are masked from 'package:base':
+
+    I, expand.grid, unname
+
+Loading required package: IRanges
+
+Attaching package: 'IRanges'
+
+The following objects are masked from 'package:dplyr':
+
+    collapse, desc, slice
+
+Loading required package: GenomeInfoDb
+
+Attaching package: 'GenomicRanges'
+
+The following object is masked from 'package:magrittr':
+
+    subtract
+
+Loading required package: Biobase
+Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.
+
+
+Attaching package: 'Biobase'
+
+The following object is masked from 'package:MatrixGenerics':
+
+    rowMedians
+
+The following objects are masked from 'package:matrixStats':
+
+    anyMissing, rowMedians
+
+> 
+> # p <- arg_parser("Generate covariates with various number of HCP")
+> # p <- add_argument(p, "--num_hcp", help="Number of HCP in covariates")
+> # p <- add_argument(p, "--expr", help="Normalized, ComBat")
+> # p <- add_argument(p, "--picard", help="Compiled picard metrics")
+> # p <- add_argument(p, "--geno_pc", help="Ancestry specific gPC")
+> # p <- add_argument(p, "--meta", help="Metadata")
+> # p <- add_argument(p, "--num_gpc", help="Number of gPC in covariates")
+> # p <- add_argument(p, "--outdir", help="Out dir")
+> # 
+> # args <- parse_args(p)
+> 
+> #fetal paths
+> fetal_counts_path <- "~/project-gandalm/fetal_rmlow_counts.tsv"
+> fetal_tpm_path <- "~/project-gandalm/fetal_rmlow_tpm.tsv"
+> #fetal_counts_path <- "/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.scaled.counts.tsv"
+> #fetal_tpm_path <- "/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.TPM.tsv"
+> fetal_meta_path <- "/u/project/gandalm/cindywen/isoform_twas/eqtl_new/metadata_654.tsv"
+> #adult paths
+> adult_counts_path <- "~/project-gandalm/adult.counts.scaled.tsv"
+> adult_tpm_path <- "~/project-gandalm/adult.TPM.tsv"
+> adult_meta_path <- "/u/project/gandalm/kafadare/cov_hcp0_gene.txt"
+> #load data for fetal & adult
+> fetal <- load_data(names = c("counts", "tpm", "meta"), fetal_counts_path, fetal_tpm_path, fetal_meta_path)
+> adult <- load_data(names = c("counts", "tpm", "meta"), adult_counts_path, adult_tpm_path, adult_meta_path)
+> adult$ancestry <-  read.table("/u/project/gandalm/kafadare/pops.txt", header = F, sep = "\t", col.names = c("id", "ancestry"))
+> colnames(adult$counts) <- id_format_fix(colnames(adult$counts))
+> colnames(adult$tpm) <- id_format_fix(colnames(adult$tpm))
+> 
+> #fetal$genExp.tpm <- read.table("/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.TPM.tsv", header = TRUE, sep = "\t") #tpm file
+> 
+> #reformat adult metadata and add batch column from the RDS file
+> adult_se <- readRDS("/u/home/k/kafadare/project-gandalm/AdultBigBrain_gene_exp_raw_042923.RDS")
+> adult$meta <- as.data.frame(t(adult$meta))
+> colnames(adult$meta) <- adult$meta[1, ]
+> adult$meta <- adult$meta[-1, ]
+> #add adult data batch column in metadata df
+> batch_index <- match(colData(adult_se)$names,rownames(adult$meta))
+> adult$meta$study <- colData(adult_se)$batch[batch_index]
+> 
+> #get index match for ancestry data, append column to meta data
+> adult_ancestry$id <- id_format_fix(adult_ancestry$id)
+Error in h(simpleError(msg, call)) : 
+  error in evaluating the argument 'x' in selecting a method for function 'gsub': object 'adult_ancestry' not found
+Calls: id_format_fix -> gsub -> .handleSimpleError -> h
+Execution halted

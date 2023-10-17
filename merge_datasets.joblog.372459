@@ -1,0 +1,19 @@
+ 
+Job merge_datasets, ID no. 372459 started on:   n6451
+Job merge_datasets, ID no. 372459 started at:   Mon Oct 16 11:52:48 PDT 2023
+ 
+Loading R/4.2.2-BIO
+  Loading requirement: intel/2020.4 R/4.2.2
+Currently Loaded Modulefiles:
+ 1) intel/2020.4(default) <aL>   2) R/4.2.2(default) <aL>   3) R/4.2.2-BIO  
+
+Key:
+(symbolic-version)  <module-tag>  <aL>=auto-loaded  
+
+R CMD BATCH --no-save --no-restore  merge_datasets.R merge_datasets.out.372459
+real 457.47
+user 414.45
+sys 25.86
+ 
+Job merge_datasets, ID no. 372459 finished at:  Mon Oct 16 12:00:26 PDT 2023
+ 

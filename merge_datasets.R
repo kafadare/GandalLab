@@ -9,13 +9,19 @@ source("analysis_fcts.R")
 #required_packages <- c("magrittr", "genio", "dplyr", "BiocManager", "SummarizedExperiment")
 required_packages <- c("magrittr","dplyr")
 # Install or load missing packages
-#load_install_pkg(required_packages)
-library(magrittr)
-library(dplyr)
+load_install_pkg(required_packages)
+#library(magrittr)
+#library(dplyr)
 #library(SummarizedExperiment)
 #library(argparser)
 #library(tximport)
 #library(tximeta)
+
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("SummarizedExperiment")
+library(SummarizedExperiment)
 
 # p <- arg_parser("Generate covariates with various number of HCP")
 # p <- add_argument(p, "--num_hcp", help="Number of HCP in covariates")
@@ -57,11 +63,11 @@ batch_index <- match(colData(adult_se)$names,rownames(adult$meta))
 adult$meta$study <- colData(adult_se)$batch[batch_index]
 
 #get index match for ancestry data, append column to meta data
-adult_ancestry$id <- id_format_fix(adult_ancestry$id)
-missing_ids <- rownames(adult$meta)[!(rownames(adult$meta) %in% adult_ancestry$id)] # 61 ids "missing" from the ancestry file
-adult$meta <- adult$meta[(rownames(adult$meta) %in% adult_ancestry$id),]
-ancestry_index <- match(rownames(adult$meta),adult_ancestry$id)
-adult$meta$ancestry <- adult_ancestry$ancestry[ancestry_index]
+adult$ancestry$id <- id_format_fix(adult$ancestry$id)
+missing_ids <- rownames(adult$meta)[!(rownames(adult$meta) %in% adult$ancestry$id)] # 61 ids "missing" from the ancestry file
+adult$meta <- adult$meta[(rownames(adult$meta) %in% adult$ancestry$id),]
+ancestry_index <- match(rownames(adult$meta),adult$ancestry$id)
+adult$meta$ancestry <- adult$ancestry$ancestry[ancestry_index]
 
 ##Sort metadata by age, convert to days post conception log scale
 #fetal convert to log pcd

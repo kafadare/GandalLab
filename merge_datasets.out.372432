@@ -1,0 +1,38 @@
+
+R version 4.2.2 (2022-10-31) -- "Innocent and Trusting"
+Copyright (C) 2022 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> ##Combine geneExp datasets and metadata for fetal and adult EUR
+> 
+> #Set up packages and functions
+> setwd("~/project-gandalm/GandalLab")
+> output_dir <- ("~/project-gandalm/comb_data/new_data/")
+> source("data_functions.R")
+> source("analysis_fcts.R")
+> # List of required packages
+> #required_packages <- c("magrittr", "genio", "dplyr", "BiocManager", "SummarizedExperiment")
+> required_packages <- c("magrittr","dplyr")
+> # Install or load missing packages
+> load_install_pkg(required_packages)
+Installing missing packages: magrittr
+Installing package into '/u/local/apps/R/4.2.2/gcc-4.8.5/intel-2020.4/BIO_LIBS'
+(as 'lib' is unspecified)
+Warning in install.packages(missing_packages, dependencies = TRUE) :
+  'lib = "/u/local/apps/R/4.2.2/gcc-4.8.5/intel-2020.4/BIO_LIBS"' is not writable
+Error in install.packages(missing_packages, dependencies = TRUE) : 
+  unable to install packages
+Calls: load_install_pkg -> install.packages
+Execution halted
