@@ -4,9 +4,15 @@ plot_dir <- "/u/home/k/kafadare/project-gandalm/plots"
 source("data_functions.R")
 source("analysis_fcts.R")
 # List of required packages
-required_packages <- c("magrittr", "dplyr", "data.table", "DESeq2", "WGCNA", "sva", "ggplot2", "reshape2")
+#required_packages <- c("magrittr", "dplyr", "data.table", "DESeq2", "WGCNA", "sva", "ggplot2")
+required_packages <- c("magrittr", "dplyr", "data.table", "WGCNA", "ggplot2")
 # Install or load missing packages
 load_install_pkg(required_packages)
+if (!require("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+BiocManager::install("DESeq2")
+BiocManager::install("sva")
 
 
 #Load Data

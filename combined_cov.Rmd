@@ -12,37 +12,48 @@ compiled picard metrics (? - think about this later)
 metadata loc -- /u/project/gandalm/cindywen/isoform_twas/eqtl_new/metadata_654.tsv, filter by ancestry == "EUR"
 #to know # of HCPs to use, should run MESC and maximize eQTL discovery
 ```{r}
-p <- arg_parser("Generate covariates with various number of HCP")
-p <- add_argument(p, "--num_hcp", help="Number of HCP in covariates")
-p <- add_argument(p, "--expr", help="Normalized, ComBat")
-#p <- add_argument(p, "--picard", help="Compiled picard metrics")
-p <- add_argument(p, "--geno_pc", help="Ancestry specific gPC")
-p <- add_argument(p, "--meta", help="Metadata")
-p <- add_argument(p, "--num_gpc", help="Number of gPC in covariates")
-p <- add_argument(p, "--outdir", help="Out dir")
+setwd("~/project-gandalm/GandalLab")
+output_dir <- ("~/project-gandalm/comb_data/processed")
+plot_dir <- "/u/home/k/kafadare/project-gandalm/plots"
+source("data_functions.R")
+source("analysis_fcts.R")
+# List of required packages
+required_packages <- c("magrittr", "dplyr", "data.table","pracma", "MASS", "ggplot2", "reshape2")
+# Install or load missing packages
+load_install_pkg(required_packages)
 
 
-args <- parse_args(p)
-num_hcp <- as.numeric(args$num_hcp)
-num_gpc <- as.numeric(args$num_gpc)
+# p <- arg_parser("Generate covariates with various number of HCP")
+# p <- add_argument(p, "--num_hcp", help="Number of HCP in covariates")
+# p <- add_argument(p, "--expr", help="Normalized, ComBat")
+# #p <- add_argument(p, "--picard", help="Compiled picard metrics")
+# p <- add_argument(p, "--geno_pc", help="Ancestry specific gPC")
+# p <- add_argument(p, "--meta", help="Metadata")
+# p <- add_argument(p, "--num_gpc", help="Number of gPC in covariates")
+# p <- add_argument(p, "--outdir", help="Out dir")
+# 
+# 
+# args <- parse_args(p)
+# num_hcp <- as.numeric(args$num_hcp)
+# num_gpc <- as.numeric(args$num_gpc)
 
 # Load data
 datExpr <- fread(args$expr, data.table=F)
 rownames(datExpr) <- datExpr$V1
 datExpr <- datExpr[,-1]
 
-datSeq <- read.table(args$picard, header=T, stringsAsFactors=FALSE)
-seq_row <- rownames(datSeq)
-for (i in 1:length(seq_row)) {
-  seq_row[i] <- strsplit(seq_row[i], split=" ")[[1]][1]
-}
-row.names(datSeq) <- seq_row
+#datSeq <- read.table(args$picard, header=T, stringsAsFactors=FALSE)
+#seq_row <- rownames(datSeq)
+# for (i in 1:length(seq_row)) {
+#   seq_row[i] <- strsplit(seq_row[i], split=" ")[[1]][1]
+# }
+# row.names(datSeq) <- seq_row
 #note 1707.walker and 1707.hdbr in datSeq
-rownames(datSeq)[which(rownames(datSeq) == "1707.hdbr")] <- "1707.1"
-rownames(datSeq)[which(rownames(datSeq) == "1707.walker")] <- "1707"
-datSeq <- datSeq[colnames(datExpr),]
+# rownames(datSeq)[which(rownames(datSeq) == "1707.hdbr")] <- "1707.1"
+# rownames(datSeq)[which(rownames(datSeq) == "1707.walker")] <- "1707"
+# datSeq <- datSeq[colnames(datExpr),]
 
-geno_pc <- read.table(args$geno_pc)
+#geno_pc <- read.table(args$geno_pc)
 
 meta <- read.table(args$meta, header=T, stringsAsFactors=FALSE)
 
@@ -63,6 +74,9 @@ standardize<- function(X)
   return (X)
 }
 
+std_datExpr <- standardize(t(datExpr))
+
+#loop through k
 hidden_convariate_linear <- function(F,Y,k,lambda,lambda2,lambda3,iter) {
   ## Use Example
   # hcp = hidden_convariate_linear(standardize(datSeq), standardize(t(datExpr)),k=10,iter = 100)
@@ -196,33 +210,8 @@ for (i in 2:ncol(cov)) {
   }
 }
 
+write.table(cov, paste0(output_dir, num_hcp, "hcp_cov.txt"), quote = F, row.names = F, col.names = T, sep = "\t")
 
-write.table(cov, paste0(args$outdir, num_hcp, "hcp_cov.txt"), quote = F, row.names = F, col.names = T, sep = "\t")
-
-
-
-```
-
-
-Explore
-1) the nature of the genes that are fetal only/adult only
-2) the age distribution of the combined dataset
-
-```{r}
-# Choose 20 random rows
-sample_genes <- fetal_only_genExp[(sample(1:nrow(fetal_only_genExp), 20)),]
-
-# Create subplots using ggplot2
-plots_list <- lapply(as.data.table(5:ncol(fetal_only_genExp)), function(col_index) {
-  ggplot(sample_genes, aes(x = .data[[col_index]])) +
-    geom_density(fill = "lightblue", color = "black") +
-    labs(title = colnames(fetal_only_genExp)[col_index], x = NULL, y = "Density") +
-    theme_minimal()
-})
-
-# Combine and print the plots
-library(gridExtra)
-grid.arrange(grobs = plots_list, ncol = 4)
 
 
 ```
