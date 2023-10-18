@@ -24,30 +24,6 @@ load_data <- function(names = c("data"), ...){
   }
   return(out)
 }
-  
-  
-#  tpm_file_ext <- tools::file_ext(genExp_counts_path)
-#   if (tpm_file_ext %in% c("csv", "txt", "tsv")) {
-#     # Read data from .csv or .txt file
-#     tpm <- read.table(tpm_path, header = TRUE, sep = "\t")
-#   } else {
-#     # Unsupported file type
-#     stop("Unsupported file type. Only .csv, .txt are supported.")
-#   }
-#   meta_file_ext <- tools::file_ext(meta_path)
-#   if (meta_file_ext %in% c("csv", "txt", "tsv")) {
-#     # Read data from .csv or .txt fil
-#     meta <- read.table(meta_path, header = TRUE, sep = "\t")
-#   } else if (meta_file_ext %in% c("rds", "RDS")) {
-#     # Read data from .rds file
-#     meta <- readRDS(meta_path)
-#   } else {
-#     # Unsupported file type
-#     stop("Unsupported file type. Only .csv, .txt, and .rds are supported.")
-#   }
-#   out <- list(counts = counts, tpm = tpm)
-#   return(out)
-# }
 
 #function to fix ID format between different files
 id_format_fix <- function(v) {
@@ -130,3 +106,42 @@ rm_low <- function(.data,datExpr.tpm, gtf, cutoff = 0.1, percent = 0.25){
   datExpr <- .data[keep,]
   return(datExpr)
 }
+
+#function to normalize and batch correct
+norm_batch <- function(datExpr, meta){
+  datExpr.vst <- varianceStabilizingTransformation(as.matrix(datExpr), blind = TRUE)
+  datExpr.vst <- as.data.frame(datExpr.vst)
+  ##### 3
+  # Normalize
+  datExpr.vst <- varianceStabilizingTransformation(as.matrix(datExpr), blind = TRUE)
+  datExpr.vst <- as.data.frame(datExpr.vst)
+  #### 4
+  # Remove outliers
+  normadj <- adjacency(datExpr.vst,type = 'signed',corFnc = 'bicor')   #Calculate network adjacency
+  netsummary <- fundamentalNetworkConcepts(normadj)
+  C <- netsummary$Connectivity   #Extract connectivity of each sample
+  Z.C <- (C-mean(C))/sqrt(var(C))   #Covert to Z-score
+  outliers <- (Z.C < -3)
+  datExpr.final <- datExpr.vst
+  datExpr.final <- datExpr.final[,!outliers]
+  write.table(datExpr.final, paste0(output_dir,".counts.norm.noComBat.tsv"), col.names = T, row.names = T, quote = F, sep = "\t")
+  exprMat <- as.matrix(datExpr.final)
+  # ComBat
+  ##need to get data.batch
+  for (i in 1:ncol(datExpr.final)) {
+    sample <- colnames(datExpr.final)[i]
+    #match the sample to id in meta file and find corresponding "study"
+    data.batch[i] <- meta[which(meta$Subject %in% sample), "study"]
+  }
+  combat_expr <- ComBat(dat = exprMat, batch = meta$study, mod = NULL, par.prior = TRUE, prior.plots = FALSE)
+  combat_expr <- as.data.frame(combat_expr)
+  
+  write.table(combat_expr, paste0(output_dir, ".counts.batch.processed.tsv"), col.names = T, row.names = T, quote = F, sep = "\t")
+  
+  outlier.df <- data.frame(c(which(outliers)))
+  outlier.df$c.which.outliers.. <- rownames(outlier.df)
+  write.table(outlier.df,paste0(output_dir, ".outlier.txt"), sep="\t", quote=F, col.names = F, row.names = F)
+  out <- list(datExpr = datExpr, combat = combat_expr)
+  return(out)
+}
+

@@ -71,7 +71,6 @@ all_fetal_plot <- fetal$counts %>% plot_gen_density(., title_str = "All Fetal Co
 # 2. lowly expressed removed already within each dataset
 ```{r}
 ##### 1
-
 comb_counts_plot <- prep_datExp(comb_genExp.counts,gtf_comb) %>% plot_gen_density(., title_str = "F/A Combined Counts")
 comb_tpm_plot <- prep_datExp(comb_genExp.tpm,gtf_comb) %>% plot_gen_density(., title_str = "F/A Combined Tpm")
 fetal_counts_plot <- prep_datExp(fetal_only_genExp,gtf_fetal) %>% plot_gen_density(., title_str = "Fetal Only Counts", ylim = c(0, 1))
@@ -82,46 +81,8 @@ adult_counts_plot <- prep_datExp(adult_only_genExp,gtf_adult) %>% plot_gen_densi
 # 4. remove outlier subjects by connectivity
 # 5. ComBat
 ```{r}
-
-norm_batch <- function(datExpr, meta){
-datExpr.vst <- varianceStabilizingTransformation(as.matrix(datExpr), blind = TRUE)
-datExpr.vst <- as.data.frame(datExpr.vst)
-##### 3
-# Normalize
-datExpr.vst <- varianceStabilizingTransformation(as.matrix(datExpr), blind = TRUE)
-datExpr.vst <- as.data.frame(datExpr.vst)
-#### 4
-# Remove outliers
-normadj <- adjacency(datExpr.vst,type = 'signed',corFnc = 'bicor')   #Calculate network adjacency
-netsummary <- fundamentalNetworkConcepts(normadj)
-C <- netsummary$Connectivity   #Extract connectivity of each sample
-Z.C <- (C-mean(C))/sqrt(var(C))   #Covert to Z-score
-outliers <- (Z.C < -3)
-datExpr.final <- datExpr.vst
-datExpr.final <- datExpr.final[,!outliers]
-write.table(datExpr.final, paste0(output_dir,".counts.norm.noComBat.tsv"), col.names = T, row.names = T, quote = F, sep = "\t")
-exprMat <- as.matrix(datExpr.final)
-# ComBat
-##need to get data.batch
-# for (i in 1:ncol(datExpr.final)) {
-#   sample <- colnames(datExpr.final)[i]
-#   #match the sample to id in meta file and find corresponding "study"
-#     data.batch[i] <- meta[which(meta$Subject %in% sample), "study"]
-# }
-combat_expr <- ComBat(dat = exprMat, batch = meta$study, mod = NULL, par.prior = TRUE, prior.plots = FALSE)
-combat_expr <- as.data.frame(combat_expr)
-
-write.table(combat_expr, paste0(output_dir, ".counts.batch.processed.tsv"), col.names = T, row.names = T, quote = F, sep = "\t")
-
-outlier.df <- data.frame(c(which(outliers)))
-outlier.df$c.which.outliers.. <- rownames(outlier.df)
-write.table(outlier.df,paste0(output_dir, ".outlier.txt"), sep="\t", quote=F, col.names = F, row.names = F)
-return(datExpr)
-}
-
 norm_shared <- norm_batch(comb_genExp.counts, combo_meta)
 plot_norm <- prep_datExp(norm_shared, gtf_comb) %>% plot_gen_density(., title_str = "Norm & Batch Correct", ylim = c(0, 1))
-
 ```
 
 # 6. pheno.bed for FastQTL; note strand; note 0/1-based
