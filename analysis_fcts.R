@@ -145,3 +145,19 @@ norm_batch <- function(datExpr, meta){
   return(out)
 }
 
+standardize<- function(X)
+{
+  X = as.matrix(X)
+  # n = dim(X)[1]
+  # p = dim(X)[2]
+  
+  X = scale(X, center = TRUE, scale = TRUE)
+  # X = scale(X,center=FALSE, scale=sqrt(apply(X^2,2,sum)))
+  
+  # m = apply(X,2,mean)
+  # st = sqrt(apply(X^2,2,sum));
+  # st_mat = matrix(st, nrow = length(st), ncol = dim(X)[2], byrow=FALSE)
+  # X2 = X / st_mat
+  return (X)
+}
+
