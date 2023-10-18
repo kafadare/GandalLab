@@ -71,7 +71,7 @@ load_install_pkg <- function(required_packages) {
   missing_packages <- required_packages[!(required_packages %in% installed.packages()[,"Package"])]
   if (length(missing_packages) > 0) {
     message("Installing missing packages: ", paste(missing_packages, collapse = ", "))
-    install.packages(missing_packages, dependencies = TRUE)
+    install.packages(missing_packages, dependencies = TRUE, repos = "http://cran.us.r-project.org")
   }
   # Load all required packages
   lapply(required_packages, require, character.only = TRUE)
