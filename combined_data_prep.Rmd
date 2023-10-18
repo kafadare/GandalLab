@@ -8,7 +8,7 @@ editor_options:
 
 ```{r setup, include=FALSE}
 setwd("~/project-gandalm/GandalLab")
-output_dir <- ("~/project-gandalm/comb_data/")
+output_dir <- ("~/project-gandalm/comb_data/processing")
 source("data_functions.R")
 source("analysis_fcts.R")
 # List of required packages
@@ -17,64 +17,65 @@ required_packages <- c("magrittr", "dplyr", "data.table", "DESeq2", "WGCNA", "sv
 load_install_pkg(required_packages)
 ```
 
+
 #Load data
 ```{r}
-fetal_only_genExp <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/fetal_only_genExp.tsv", header = T)
-gtf_fetal <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/gene_info_fetal.tsv", header = T)
-colnames(gtf_fetal)[2] <- "Chr"
-adult_only_genExp <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/adult_only_genExp.tsv", header = T)
-gtf_adult <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/gene_info_adult.tsv", header = T)
-colnames(gtf_adult)[2] <- "Chr"
-comb_genExp.counts <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/combo_genExp_counts.tsv", header = T)
-comb_genExp.tpm <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/combo_genExp_tpm.tsv", header = T)
-gtf_comb <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/gene_info_comb.tsv", header = T)
-colnames(gtf_comb)[2] <- "Chr"
+fetal_only_genExp <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/new_data/fetal_only_genExp.tsv", header = T)
+gtf_fetal <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/new_data/gene_info_fetal.tsv", header = T)
+#colnames(gtf_fetal)[2] <- "Chr"
+
+adult_only_genExp <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/new_data/adult_only_genExp.tsv", header = T)
+gtf_adult <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/new_data/gene_info_adult.tsv", header = T)
+#colnames(gtf_adult)[2] <- "Chr"
+
+comb_genExp.counts <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/new_data/combo_genExp_counts.tsv", header = T)
+comb_genExp.tpm <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/new_data/combo_genExp_tpm.tsv", header = T)
+gtf_comb <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/new_data/gene_info_comb.tsv", header = T)
+#colnames(gtf_comb)[2] <- "Chr"
+
 combo_meta <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/combo_meta.tsv", header = T)
 ##Change names in meta file to match the names in the genExp files (especially for the overlap samples)
+
 ```
 
-FUNCTIONS (will move to separate script later)
-
 ``` {r}
-# melted_data <- melt(comb_genExp.counts[,2:ncol(comb_genExp.counts)])
-# ggplot(melted_data, aes(x = value)) +
-#   geom_histogram(binwidth = 1, fill = "lightblue", color = "black") +
-#   labs(title = "Gene Expression Density", x = "Expression Value", y = "Density") + theme_minimal()
+fetal_counts_path <- "~/project-gandalm/fetal_rmlow_counts.tsv"
+fetal_tpm_path <- "~/project-gandalm/fetal_rmlow_tpm.tsv"
+#fetal_counts_path <- "/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.scaled.counts.tsv"
+#fetal_tpm_path <- "/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.TPM.tsv"
+fetal_meta_path <- "/u/project/gandalm/cindywen/isoform_twas/eqtl_new/metadata_654.tsv"
+#adult paths
+adult_counts_path <- "~/project-gandalm/adult.counts.scaled.tsv"
+adult_tpm_path <- "~/project-gandalm/adult.TPM.tsv"
+adult_meta_path <- "/u/project/gandalm/kafadare/cov_hcp0_gene.txt"
+#load data for fetal & adult
+fetal <- load_data(names = c("counts", "tpm", "meta"), fetal_counts_path, fetal_tpm_path, fetal_meta_path)
+adult <- load_data(names = c("counts", "tpm", "meta"), adult_counts_path, adult_tpm_path, adult_meta_path)
+colnames(adult$counts) <- id_format_fix(colnames(adult$counts))
+colnames(adult$tpm) <- id_format_fix(colnames(adult$tpm))
+
+#get Chr number and start and end codon
+gtf_fetal_all <- get_gene_info(fetal$counts$genid)
+gtf_adult_all <- get_gene_info(adult$counts$genid)
 ```
 Initial Histogram plots
 
 ```{r}
+all_adult_plot <- prep_datExp(comb_genExp.counts,gtf_comb) %>% plot_gen_density(., title_str = "F/A Combined Counts")
+all_fetal_plot <- prep_datExp(comb_genExp.tpm,gtf_comb) %>% plot_gen_density(., title_str = "F/A Combined Tpm")
+all_adult_plot <- adult$counts %>% plot_gen_density(., title_str = "All Adult Counts")
+all_fetal_plot <- fetal$counts %>% plot_gen_density(., title_str = "All Fetal Counts")
+```
+# 0. match with GTF file, remove chrX, chrY, chrM
+# 1. round expression for DESeq2
+# 2. lowly expressed removed already within each dataset
+```{r}
+##### 1
 
 comb_counts_plot <- prep_datExp(comb_genExp.counts,gtf_comb) %>% plot_gen_density(., title_str = "F/A Combined Counts")
 comb_tpm_plot <- prep_datExp(comb_genExp.tpm,gtf_comb) %>% plot_gen_density(., title_str = "F/A Combined Tpm")
 fetal_counts_plot <- prep_datExp(fetal_only_genExp,gtf_fetal) %>% plot_gen_density(., title_str = "Fetal Only Counts", ylim = c(0, 1))
-adult_counts_plot <- prep_datExp(adult_only_genExp,gtf_adult) %>% plot_gen_density(., title_str = "Adult Only Counts", ylim = c(0, 0.3))
-
-```
-# 0. match with GTF file, remove chrX, chrY, chrM
-# 1. round expression for DESeq2
-# 2. remove lowly expressed based on TPM
-```{r}
-##### 1
-#datExpr <- fread("/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.scaled.counts.tsv", data.table = F)
-#gtf_fetal <- fread("/u/project/gandalm/cindywen/isoform_twas/salmon/gencode.gene.noVersion.tsv", data.table = F)
-#fetal_tpm <- fread("/u/project/gandalm/cindywen/isoform_twas/salmon/expression.final/gene.noVersion.TPM.tsv", data.table = F)
-#fetal_tpm <- fetal[[1]]
-#fetal_tpm$genid <- rownames(fetal_tpm)
-#colnames(fetal_gtf) <- c("Chr", "V2", "V3", "V4", "genid")
-#colnames(fetal_tpm)[1] <- "genid"
-#walker and hdbr duplicate 1707
-#make hdbr 1707.1
-#names(datExpr)[647] <- "1707.1"
-
-keep_fetal <- rm_low(fetal_tpm, gtf_fetal, 0.1, 0.25)
-
-keep_shared <- rm_low(comb_genExp.counts, comb_genExp.tpm, gtf_comb, 0.1, 0.25)
-plots <- list()
-plots[1] <- prep_datExp(keep_shared, gtf_comb) %>% plot_gen_density(., title_str = "Low RM 0.1/0.25", ylim = c(0, 0.5))
-plots[2] <- prep_datExp(keep_shared, gtf_comb) %>% plot_gen_density(., title_str = "Low RM 0.5/0.25", ylim = c(0, 0.5))
-plots[3] <- prep_datExp(keep_shared, gtf_comb) %>% plot_gen_density(., title_str = "Low RM 0.5/0.5", ylim = c(0, 0.5))
-
+adult_counts_plot <- prep_datExp(adult_only_genExp,gtf_adult) %>% plot_gen_density(., title_str = "Adult Only Counts", ylim = c(0, 1))
 ```
 
 # 3. VST normalization and transformation
@@ -98,7 +99,7 @@ Z.C <- (C-mean(C))/sqrt(var(C))   #Covert to Z-score
 outliers <- (Z.C < -3)
 datExpr.final <- datExpr.vst
 datExpr.final <- datExpr.final[,!outliers]
-write.table(datExpr.final, paste0(args$outdir,args$level,".counts.processed.noComBat.tsv"), col.names = T, row.names = T, quote = F, sep = "\t")
+write.table(datExpr.final, paste0(output_dir,".counts.norm.noComBat.tsv"), col.names = T, row.names = T, quote = F, sep = "\t")
 exprMat <- as.matrix(datExpr.final)
 # ComBat
 ##need to get data.batch
@@ -107,21 +108,19 @@ exprMat <- as.matrix(datExpr.final)
 #   #match the sample to id in meta file and find corresponding "study"
 #     data.batch[i] <- meta[which(meta$Subject %in% sample), "study"]
 # }
-combat_expr <- ComBat(dat = exprMat, batch = data.batch, mod = NULL, par.prior = TRUE, prior.plots = FALSE)
+combat_expr <- ComBat(dat = exprMat, batch = meta$study, mod = NULL, par.prior = TRUE, prior.plots = FALSE)
 combat_expr <- as.data.frame(combat_expr)
 
-write.table(combat_expr, paste0(args$outdir, args$level, ".counts.processed.tsv"), col.names = T, row.names = T, quote = F, sep = "\t")
+write.table(combat_expr, paste0(output_dir, ".counts.batch.processed.tsv"), col.names = T, row.names = T, quote = F, sep = "\t")
 
 outlier.df <- data.frame(c(which(outliers)))
 outlier.df$c.which.outliers.. <- rownames(outlier.df)
-write.table(outlier.df,paste0(args$outdir, args$level, ".outlier.txt"), sep="\t", quote=F, col.names = F, row.names = F)
+write.table(outlier.df,paste0(output_dir, ".outlier.txt"), sep="\t", quote=F, col.names = F, row.names = F)
 return(datExpr)
 }
 
-norm_shared <- norm_batch(keep_shared, combo_meta)
-plots[1] <- prep_datExp(keep_shared, gtf_comb) %>% plot_gen_density(., title_str = "Low RM 0.1/0.25", ylim = c(0, 0.5))
-plots[2] <- prep_datExp(keep_shared, gtf_comb) %>% plot_gen_density(., title_str = "Low RM 0.5/0.25", ylim = c(0, 0.5))
-plots[3] <- prep_datExp(keep_shared, gtf_comb) %>% plot_gen_density(., title_str = "Low RM 0.5/0.5", ylim = c(0, 0.5))
+norm_shared <- norm_batch(comb_genExp.counts, combo_meta)
+plot_norm <- prep_datExp(norm_shared, gtf_comb) %>% plot_gen_density(., title_str = "Norm & Batch Correct", ylim = c(0, 1))
 
 ```
 

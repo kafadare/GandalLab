@@ -87,7 +87,7 @@ adult$eur_meta$ancestry <- tolower(adult$eur_meta$ancestry)
 fetal$eur_meta$Subject <- fetal$eur_meta$Subject %>% gsub("^(\\d)", "X\\1", .)
 adult$eur_meta$Subject[adult$eur_meta$Subject %in% fetal$eur_meta$Subject] <- paste0(adult$eur_meta$Subject, ".a")[adult$eur_meta$Subject %in% fetal$eur_meta$Subject]
 combined_meta <- merge(fetal$eur_meta, adult$eur_meta, all = T)
-#write.table(combined_meta, file = paste0(output_dir,"combo_meta.tsv"), row.names = FALSE, sep = "\t")
+write.table(combined_meta, file = paste0(output_dir,"combo_meta.tsv"), row.names = FALSE, sep = "\t")
 
 #Sort both genExp data by age, both counts and tpm
 f_ids_by_age <- fetal$eur_meta$Subject %>% intersect(.,colnames(fetal$counts))

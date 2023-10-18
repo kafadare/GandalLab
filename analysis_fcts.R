@@ -88,7 +88,7 @@ prep_datExp <- function(.data, gtf){
 }
 
 #function to plot gene density
-plot_gen_density <- function(.data, offset = 0.1, title_str = 'Scaled Gene Counts ', xlim = c(-10,30), ylim = c(0,0.5), log = TRUE){
+plot_gen_density <- function(.data, offset = 0.1, title_str = 'Scaled Gene Counts ', xlim = c(-10,30), ylim = c(0,1), log = TRUE){
   # View the distribution of expression for each sample.
   # box plot, looking for big differences in read depth (raw counts), symmetry in distribution across samples
   par(mfrow=c(1,2))
@@ -99,7 +99,7 @@ plot_gen_density <- function(.data, offset = 0.1, title_str = 'Scaled Gene Count
   par(mfrow=c(1,1))
   i <- 1
   if(log == TRUE){
-    plot <- plot(density(log2(offset+.data[,i])), main = paste('Scaled Gene    Counts ',title_str), xlab = paste('log2(counts+',offset,')'), 
+    plot <- plot(density(log2(offset+.data[,i])), main = title_str, xlab = paste('log2(counts+',offset,')'), 
                  xlim = xlim, ylim = ylim)
     for(i in 1:ncol(.data)){
       lines(density(log2(.1+.data[,i])), col = i)
