@@ -57,7 +57,7 @@ datExpr <- datExpr[,-1]
 
 meta <- read.table(args$meta, header=T, stringsAsFactors=FALSE)
 
-# HCP
+# Generate covariates - PCA
 standardize<- function(X)
 {
   X = as.matrix(X)
@@ -76,7 +76,7 @@ standardize<- function(X)
 
 std_datExpr <- standardize(t(datExpr))
 
-#loop through k
+#loop through k (wrap this around though)
 hidden_convariate_linear <- function(F,Y,k,lambda,lambda2,lambda3,iter) {
   ## Use Example
   # hcp = hidden_convariate_linear(standardize(datSeq), standardize(t(datExpr)),k=10,iter = 100)
