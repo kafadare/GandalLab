@@ -4,30 +4,40 @@ plot_dir <- "/u/home/k/kafadare/project-gandalm/plots"
 source("data_functions.R")
 source("analysis_fcts.R")
 # List of required packages
-#required_packages <- c("magrittr", "dplyr", "data.table", "DESeq2", "WGCNA", "sva", "ggplot2")
-required_packages <- c("magrittr", "dplyr", "data.table", "WGCNA", "ggplot2")
+required_packages <- c("magrittr", "dplyr", "data.table", "DESeq2", "WGCNA", "sva", "ggplot2")
+#required_packages <- c("magrittr", "dplyr", "data.table", "ggplot2")
 # Install or load missing packages
 load_install_pkg(required_packages)
-if (!require("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-
-BiocManager::install("DESeq2")
-BiocManager::install("sva")
-
+#library(DESeq2)
+#library(sva)
+#library(WGCNA)
 
 #Load Data
-datExpr.counts <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/new_data/combo_genExp_counts.tsv", header = T)
-datExpr.tpm <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/new_data/combo_genExp_tpm.tsv", header = T)
-gtf <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/new_data/gene_info_comb.tsv", header = T)
+datExpr <- fread("/u/home/k/kafadare/project-gandalm/comb_data/new_data/combo_genExp_counts.tsv", header = T, data.table = F)
+datExpr.tpm <- fread("/u/home/k/kafadare/project-gandalm/comb_data/new_data/combo_genExp_tpm.tsv", header = T, data.table = F)
+gtf <- fread("/u/home/k/kafadare/project-gandalm/comb_data/new_data/gene_info_comb.tsv", header = T, data.table = F)
 #colnames(gtf_comb)[2] <- "Chr"
-meta <- read.table("/u/home/k/kafadare/project-gandalm/comb_data/combo_meta.tsv", header = T)
+meta <- fread("/u/home/k/kafadare/project-gandalm/comb_data/combo_meta.tsv", header = T, data.table = F)
 ##Change names in meta file to match the names in the genExp files (especially for the overlap samples)
 
+# test<- prep_datExp(datExpr, gtf) 
+overlap_ids <- meta[grep(".f",meta$Subject),'Subject']
+overlap_ids <- gsub(".f", "", overlap_ids)
+ind <- which(meta$Subject %in% overlap_ids)
+meta[ind, 1] <- gsub("(\\d)$", "\\1.a", meta[ind, 1])
+# 
+# data.batch <- c()
+# for (i in 1:ncol(test)) {
+#   sample <- colnames(test)[i]
+#   #match the sample to id in meta file and find corresponding "study"
+#   data.batch[i] <- meta[which(meta$Subject %in% sample), "study"]
+# }
 
-norm_batch <- norm_batch(datExpr.counts, meta)
+
+norm_batch <- prep_datExp(datExpr, gtf) %>% norm_batch(., meta)
 datExpr <- norm_batch$datExpr
 combat_expr <- norm_batch$combat
- 
+
 # Save the plot
 pdf(paste0(plot_dir,"ComBat_processed_shared.pdf"))
 plot_norm <- prep_datExp(combat_expr, gtf_comb) %>% plot_gen_density(., title_str = "Norm & Batch Correct", ylim = c(0, 1))

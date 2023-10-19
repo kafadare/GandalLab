@@ -108,7 +108,8 @@ rm_low <- function(.data,datExpr.tpm, gtf, cutoff = 0.1, percent = 0.25){
 }
 
 #function to normalize and batch correct
-norm_batch <- function(datExpr, meta){
+norm_batch <- function(.data, meta){
+  datExpr <- .data
   datExpr.vst <- varianceStabilizingTransformation(as.matrix(datExpr), blind = TRUE)
   datExpr.vst <- as.data.frame(datExpr.vst)
   ##### 3
@@ -127,6 +128,7 @@ norm_batch <- function(datExpr, meta){
   write.table(datExpr.final, paste0(output_dir,".counts.norm.noComBat.tsv"), col.names = T, row.names = T, quote = F, sep = "\t")
   exprMat <- as.matrix(datExpr.final)
   # ComBat
+  data.batch <- c()
   ##need to get data.batch
   for (i in 1:ncol(datExpr.final)) {
     sample <- colnames(datExpr.final)[i]
