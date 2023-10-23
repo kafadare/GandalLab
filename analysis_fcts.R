@@ -33,21 +33,18 @@ id_format_fix <- function(v) {
 }
 
 get_gene_info <- function(genid){
-  if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-  
-  BiocManager::install("biomaRt")
   library(biomaRt)
   ensembl <- useEnsembl(biomart = "genes", 
                         dataset = "hsapiens_gene_ensembl")
   bm_gene = getBM(attributes = c('ensembl_gene_id',
                                  'chromosome_name',
                                  'start_position',
-                                 'end_position'),
+                                 'end_position',
+                                 'strand'),
                   filters = c('ensembl_gene_id'),
                   mart = ensembl,
                   values = genid)
-  colnames(bm_gene) = c('genid','Chr','start','end')
+  colnames(bm_gene) = c('genid','Chr','start','end','strand')
   return(bm_gene)
 }
 
@@ -108,11 +105,8 @@ rm_low <- function(.data,datExpr.tpm, gtf, cutoff = 0.1, percent = 0.25){
 }
 
 #function to normalize and batch correct
-norm_batch <- function(.data, meta){
+norm_batch <- function(.data, meta, output_dir){
   datExpr <- .data
-  datExpr.vst <- varianceStabilizingTransformation(as.matrix(datExpr), blind = TRUE)
-  datExpr.vst <- as.data.frame(datExpr.vst)
-  ##### 3
   # Normalize
   datExpr.vst <- varianceStabilizingTransformation(as.matrix(datExpr), blind = TRUE)
   datExpr.vst <- as.data.frame(datExpr.vst)
@@ -125,7 +119,7 @@ norm_batch <- function(.data, meta){
   outliers <- (Z.C < -3)
   datExpr.final <- datExpr.vst
   datExpr.final <- datExpr.final[,!outliers]
-  write.table(datExpr.final, paste0(output_dir,".counts.norm.noComBat.tsv"), col.names = T, row.names = T, quote = F, sep = "\t")
+  write.table(datExpr.final, paste0(output_dir,"counts.norm.noComBat.tsv"), col.names = T, row.names = T, quote = F, sep = "\t")
   exprMat <- as.matrix(datExpr.final)
   # ComBat
   data.batch <- c()
@@ -135,14 +129,14 @@ norm_batch <- function(.data, meta){
     #match the sample to id in meta file and find corresponding "study"
     data.batch[i] <- meta[which(meta$Subject %in% sample), "study"]
   }
-  combat_expr <- ComBat(dat = exprMat, batch = meta$study, mod = NULL, par.prior = TRUE, prior.plots = FALSE)
+  combat_expr <- ComBat(dat = exprMat, batch = data.batch, mod = NULL, par.prior = TRUE, prior.plots = FALSE)
   combat_expr <- as.data.frame(combat_expr)
   
-  write.table(combat_expr, paste0(output_dir, ".counts.batch.processed.tsv"), col.names = T, row.names = T, quote = F, sep = "\t")
+  write.table(combat_expr, paste0(output_dir, "counts.batch.processed.tsv"), col.names = T, row.names = T, quote = F, sep = "\t")
   
   outlier.df <- data.frame(c(which(outliers)))
   outlier.df$c.which.outliers.. <- rownames(outlier.df)
-  write.table(outlier.df,paste0(output_dir, ".outlier.txt"), sep="\t", quote=F, col.names = F, row.names = F)
+  write.table(outlier.df,paste0(output_dir, "outlier.txt"), sep="\t", quote=F, col.names = F, row.names = F)
   out <- list(datExpr = datExpr, combat = combat_expr)
   return(out)
 }

@@ -18,16 +18,6 @@ load_install_pkg(required_packages)
 #library(tximeta)
 library(SummarizedExperiment)
 
-# p <- arg_parser("Generate covariates with various number of HCP")
-# p <- add_argument(p, "--num_hcp", help="Number of HCP in covariates")
-# p <- add_argument(p, "--expr", help="Normalized, ComBat")
-# p <- add_argument(p, "--picard", help="Compiled picard metrics")
-# p <- add_argument(p, "--geno_pc", help="Ancestry specific gPC")
-# p <- add_argument(p, "--meta", help="Metadata")
-# p <- add_argument(p, "--num_gpc", help="Number of gPC in covariates")
-# p <- add_argument(p, "--outdir", help="Out dir")
-# 
-# args <- parse_args(p)
 
 #fetal paths
 fetal_counts_path <- "~/project-gandalm/fetal_rmlow_counts.tsv"

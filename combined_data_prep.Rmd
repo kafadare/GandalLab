@@ -9,10 +9,11 @@ editor_options:
 ```{r setup, include=FALSE}
 setwd("~/project-gandalm/GandalLab")
 output_dir <- ("~/project-gandalm/comb_data/processing")
+plot_dir <- "/u/home/k/kafadare/project-gandalm/plots"
 source("data_functions.R")
 source("analysis_fcts.R")
 # List of required packages
-required_packages <- c("magrittr", "dplyr", "data.table", "DESeq2", "WGCNA", "sva", "ggplot2", "reshape2")
+required_packages <- c("magrittr", "dplyr", "data.table", "DESeq2", "WGCNA", "sva", "ggplot2")
 # Install or load missing packages
 load_install_pkg(required_packages)
 ```
@@ -77,48 +78,75 @@ fetal_counts_plot <- prep_datExp(fetal_only_genExp,gtf_fetal) %>% plot_gen_densi
 adult_counts_plot <- prep_datExp(adult_only_genExp,gtf_adult) %>% plot_gen_density(., title_str = "Adult Only Counts", ylim = c(0, 1))
 ```
 
-# 3. VST normalization and transformation
-# 4. remove outlier subjects by connectivity
-# 5. ComBat
+# Visualization of Combat
 ```{r}
-norm_shared <- norm_batch(comb_genExp.counts, combo_meta)
-plot_norm <- prep_datExp(norm_shared, gtf_comb) %>% plot_gen_density(., title_str = "Norm & Batch Correct", ylim = c(0, 1))
-```
+datExpr <- fread("/u/home/k/kafadare/project-gandalm/comb_data/new_data/combo_genExp_counts.tsv", header = T, data.table = F)
+rownames(datExpr) <- datExpr$V1
+datExpr <- datExpr[,-1]
 
-# 6. pheno.bed for FastQTL; note strand; note 0/1-based
+datExpr.final <- fread("/u/home/k/kafadare/project-gandalm/comb_data/processed/counts.norm.noComBat.tsv", data.table = F)
+rownames(datExpr.final) <- datExpr.final$V1
+datExpr.final <- datExpr.final[,-1]
 
-```{r}
-##### 6
-# phenotype.bed
-gtf <- gtf %>% filter(V5 %in% rownames(datExpr.final))
+combat_expr <- fread("/u/home/k/kafadare/project-gandalm/comb_data/processed/counts.batch.processed.tsv", data.table = F)
+rownames(combat_expr) <- combat_expr$V1
+combat_expr <- combat_expr[,-1]
 
-# prepare BED file
-setDT(combat_expr, keep.rownames = TRUE)
-bed <- merge(combat_expr, gtf, by.x = "rn", by.y = "V5", all = TRUE)
-bed <- as.data.frame(bed)
+data.batch <- c()
+  ##need to get data.batch
+  for (i in 1:ncol(datExpr[,which(colnames(datExpr) %in% colnames(combat_expr))])) {
+    sample <- colnames(datExpr[,which(colnames(datExpr) %in% colnames(combat_expr))])[i]
+    #match the sample to id in meta file and find corresponding "study"
+    data.batch[i] <- combo_meta[which(combo_meta$Subject %in% sample), "study"]
+  }
 
-bed <- bed[, c(ncol(bed)-3, ncol(bed)-2, ncol(bed)-1, ncol(bed), 1:(ncol(bed)-4))]
+s <- svd(datExpr[,which(colnames(datExpr) %in% colnames(combat_expr))] - rowMeans(datExpr[,which(colnames(datExpr) %in% colnames(combat_expr))]))
+PC1 <- s$d[1]*s$v[,1]
+PC2 <- s$d[2]*s$v[,2]
+data <- data.frame(PC1, PC2, "Data" = factor(data.batch))
+ 
+    
+data.batch1 <- c()
+  ##need to get data.batch
+  for (i in 1:ncol(combat_expr)) {
+    sample <- colnames(combat_expr)[i]
+    #match the sample to id in meta file and find corresponding "study"
+    data.batch1[i] <- combo_meta[which(combo_meta$Subject %in% sample), "study"]
+  }
 
-# special note! strand; 0/1-based conversion
-bed$V1 <- gsub("chr","",bed$V1)
+s_1 <- svd(combat_expr - rowMeans(combat_expr))
+PC1_1 <- s_1$d[1]*s_1$v[,1]
+PC2_1 <- s_1$d[2]*s_1$v[,2]
+data1 <- data.frame(PC1_1, PC2_1, "Data" = factor(data.batch1))
 
-for (i in 1:dim(bed)[1]){
-	if (bed[i,4] == "+") {
-		gtf_start=bed[i,2]
-		bed[i,2]=gtf_start-1
-		bed[i,3]=gtf_start
-	}
-	else if (bed[i,4] == "-") {
-		gtf_end=bed[i,3]
-		bed[i,2]=gtf_end-1
-		bed[i,3]=gtf_end
-	}
-}
+#plot
+options(repr.plot.width = 12, repr.plot.height = 6)
 
-bed <- bed[order(bed$V1, bed$V2),]
+colnames(data1) <- c("PC1", "PC2", "Data")
+data_combine <- rbind(data, data1)
 
-bed <- bed %>% select(-V4)
-colnames(bed)[1:4] <- c("#Chr", "start", "end", "ID")
+data_combine$group <- c(rep("RawCounts", dim(data)[1]), 
+                        rep("ComBat-seq", dim(data1)[1]))
+data_combine$group <- factor(data_combine$group, levels = c("RawCounts", "ComBat-seq"))
 
-write.table(bed, paste0(args$outdir, args$level, ".counts.scaled.normalized.bed"), quote=F, sep="\t", row.names=F, col.names=T)
+ggplot(data_combine, aes(x = PC1, y = PC2, color = Data)) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~group, scales = "free") +
+  labs(title = "Fetal Adult Combined Data, n = 1965", x = "", y = "") +
+  theme_bw() +
+  theme(axis.text = element_text(size = 16),
+        plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+        strip.text.x = element_text(size = 14),
+        legend.title = element_text(size = 16, face = "bold"),
+        legend.text = element_text(size = 14))
+
+
+##the plot is not working - idk why >:(
+# plot_norm <-  plot_gen_density(., title_str = "Norm & Batch Correct", ylim = c(0, 1))
+# 
+# 
+# pdf(paste0(plot_dir,"ComBat_processed_shared.pdf"))
+# plot_norm <-  plot_gen_density(combat_expr, title_str = "Norm & Batch Correct", ylim = c(0, 1))
+# dev.off() 
+
 ```
