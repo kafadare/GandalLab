@@ -1,0 +1,69 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+#Set up packages and functions
+``` {r}
+setwd("~/project-gandalm/GandalLab")
+output_dir <- ("~/project-gandalm/")
+plot_dir <- ("~/project-gandalm/plots/")
+source("data_functions.R")
+source("analysis_fcts.R")
+# List of required packages
+#required_packages <- c("magrittr", "genio", "dplyr", "BiocManager", "SummarizedExperiment")
+required_packages <- c("magrittr","dplyr")
+# Install or load missing packages
+#load_install_pkg(required_packages)
+library(magrittr)
+library(dplyr)
+```
+
+##Load Data
+fetal genExp all
+adult removed
+fetal meta
+adult meta
+
+```{r}
+fetal <- #before rm low
+```
+#plot gene expression density fetal all, adult all (before merge)
+
+##Remove fetal lowly expressed genes
+```{r}
+#source(fetal_rmLow.R)
+fetal_rm <- #after rm low
+#plot both
+```
+
+##merge genExp
+```{r}
+source(merge_datasets.R)
+#plot shared genes
+#plot adult only
+#plot fetal only
+```
+
+##Merge meta
+plot age before merge, after merge
+plot log transform
+```{r}
+source(merge_meta.R)
+
+```
+plot age before merge adult all, fetal all
+- regular, pcd, log
+plot age in merged file
+- regular, pcd, log
+
+#process genExp
+	- normalize - plot boxplot after norm
+	- batch correct - plot boxplot after combat
+		- plot svd of normalized counts & batch corrected counts
+		
+#PCA
+- get PCA
+	- plot PCA scree plot
+- get which known covars are explained by PCA
+- regress out PCs & known covars that remain
+- plot svd (?) after regressing out  #PCs from elbow and # PCs from BE
