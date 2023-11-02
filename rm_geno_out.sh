@@ -1,6 +1,6 @@
 #!/bin/bash -l
 #$ -cwd
-#$ -l h_data=XXX,h_rt=24:00:00
+#$ -l h_data=4G,h_rt=24:00:00
 #$ -j y
 #$ -o /u/home/k/kafadare/project-gandalm/mesc_genExp_scores/
 #$ -m a
