@@ -1,6 +1,6 @@
 setwd("~/project-gandalm/GandalLab")
 output_dir <- ("~/project-gandalm/comb_data/processed/")
-plot_dir <- "/u/home/k/kafadare/project-gandalm/plots"
+plot_dir <- "/u/home/k/kafadare/project-gandalm/plots/"
 source("data_functions.R")
 source("analysis_fcts.R")
 # List of required packages

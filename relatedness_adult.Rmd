@@ -1,0 +1,47 @@
+---
+title: "Adult Filter"
+output: html_notebook
+---
+```{r, echo = FALSE}
+setwd("~/project-gandalm/")
+output_dir <- ("~/project-gandalm/")
+plot_dir <- "/u/home/k/kafadare/project-gandalm/plots/"
+library(data.table)
+library(tidyverse)
+```
+load & inspect data
+```{r}
+dat <- fread("/u/project/gandalm/kafadare/adult_EUR_GR37.genome.gz.genome.gz")
+head(dat)
+dim(dat)
+hist(dat$PI_HAT)
+```
+
+plot relatedness
+```{r}
+
+ggplot(dat, aes(x = seq_along(PI_HAT), y = PI_HAT)) +
+    geom_point(size = 4, fill = "steelblue", shape = 21, alpha = 0.8) +
+    labs(title = "Sample relatedness check", 
+        subtitle = "Only showing PI_HAT > 0.1",
+        x = "Sample pairs",
+        y = "Plink PI_HAT") +
+    geom_hline(yintercept = .3, linetype = 'dashed', col = 'red', linewidth = 1) +
+    theme_classic() +
+    theme(axis.text = element_text(size = 16),
+          axis.title = element_text(size = 18),
+          plot.title = element_text(size = 18, face = "bold", hjust = 0.5),
+          plot.subtitle = element_text(size = 16, hjust = 0.5))
+
+ggsave(paste0(plot_dir,"pihat.pdf"), width = 6, height = 6)
+```
+
+
+remove individuals with pi_hat > 0.03
+```{r}
+rel <- dat %>% filter(PI_HAT > 0.3)
+dim(rel)
+df <- unique(data.frame(c(rel$IID1, rel$IID2)))
+nrow(df)
+write.table(df,"/u/project/gandalm/kafadare/adult_EUR_related.txt", col.names=F, row.names=F, quote=F, sep="\t")
+```

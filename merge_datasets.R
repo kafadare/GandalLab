@@ -23,17 +23,6 @@ if (!require("BiocManager", quietly = TRUE))
 BiocManager::install("SummarizedExperiment")
 library(SummarizedExperiment)
 
-# p <- arg_parser("Generate covariates with various number of HCP")
-# p <- add_argument(p, "--num_hcp", help="Number of HCP in covariates")
-# p <- add_argument(p, "--expr", help="Normalized, ComBat")
-# p <- add_argument(p, "--picard", help="Compiled picard metrics")
-# p <- add_argument(p, "--geno_pc", help="Ancestry specific gPC")
-# p <- add_argument(p, "--meta", help="Metadata")
-# p <- add_argument(p, "--num_gpc", help="Number of gPC in covariates")
-# p <- add_argument(p, "--outdir", help="Out dir")
-# 
-# args <- parse_args(p)
-
 #fetal paths
 fetal_counts_path <- "~/project-gandalm/fetal_rmlow_counts.tsv"
 fetal_tpm_path <- "~/project-gandalm/fetal_rmlow_tpm.tsv"
@@ -84,7 +73,7 @@ adult$eur_meta <- subset(adult$meta, ancestry == "EUR")
 adult$eur_meta$ancestry <- tolower(adult$eur_meta$ancestry)
 #combine metadata
 #change ids to match the merge ids from genExp merge
-fetal$eur_meta$Subject <- fetal$eur_meta$Subject %>% gsub("^(\\d)", "X\\1", .)
+fetal$eur_meta$Subject <- id_format_fix(fetal$eur_meta$Subject)
 adult$eur_meta$Subject[adult$eur_meta$Subject %in% fetal$eur_meta$Subject] <- paste0(adult$eur_meta$Subject, ".a")[adult$eur_meta$Subject %in% fetal$eur_meta$Subject]
 combined_meta <- merge(fetal$eur_meta, adult$eur_meta, all = T)
 write.table(combined_meta, file = paste0(output_dir,"combo_meta.tsv"), row.names = FALSE, sep = "\t")

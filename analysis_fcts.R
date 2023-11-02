@@ -1,30 +1,3 @@
-load_data <- function(names = c("data"), ...){
-  # Determine the number of arguments
-  num_files <- length(list(...))
-  num_names <- length(names)
-  if (num_files != num_names){
-    stop(paste0("You provided ", num_args, " files but only ", num_names, " names. There should be a name matching each file to be loaded"))
-  }
-  # Initialize an empty list to store the results
-  out <- vector("list", length = num_files)
-  names(out) <- names
-  # Iterate through each argument
-  for (i in seq_along(list(...))) {
-    #get file type
-    file_ext <- tools::file_ext(list(...)[[i]])
-    if (file_ext %in% c("csv", "txt", "tsv")) {
-      # Read data from .csv or .txt file
-      table <- read.table(list(...)[[i]], header = TRUE, sep = "\t")
-    } else {
-      # Unsupported file type
-      stop(paste0(list(...)[[i]]," is an unsupported file type. Only .csv, .txt are supported."))
-    }
-    # Store the result in the list
-    out[[i]] <- table
-  }
-  return(out)
-}
-
 #function to fix ID format between different files
 id_format_fix <- function(v) {
   v <- gsub("^(\\d)", "X\\1", v)
@@ -50,12 +23,11 @@ get_gene_info <- function(genid){
 
 #prep data
 prep_datExp <- function(.data, gtf){
-  gtf <- gtf %>% filter(!(Chr %in% c("chrX","chrY","chrM")))
+  gtf <- gtf %>% filter(!(Chr %in% c("X","Y","M")))
   .data <- .data %>% filter(genid %in% gtf$genid)
   gtf <- gtf %>% filter(genid %in% .data$genid)
   rownames(.data) <- .data$genid
   .data <- .data[,!colnames(.data) %in% "genid"]
-  .data <- .data[,-1]
   .data <- round(.data)
   return(.data)
 }
@@ -78,7 +50,7 @@ plot_gen_density <- function(.data, offset = 0.1, title_str = 'Scaled Gene Count
       lines(density(log2(.1+.data[,i])), col = i)
     }
   }else{
-    plot <- plot(density(.data[,i]), main = paste('Scaled Gene Counts ',title_str),   xlab = 'Counts', 
+    plot <- plot(density(.data[,i]), main = title_str,   xlab = 'Counts', 
                  xlim = xlim, ylim = ylim)
     for(i in 1:ncol(.data)){
       lines(density(.data[,i]), col = i)
@@ -137,7 +109,7 @@ norm_batch <- function(.data, meta, output_dir){
   outlier.df <- data.frame(c(which(outliers)))
   outlier.df$c.which.outliers.. <- rownames(outlier.df)
   write.table(outlier.df,paste0(output_dir, "outlier.txt"), sep="\t", quote=F, col.names = F, row.names = F)
-  out <- list(datExpr = datExpr, combat = combat_expr)
+  out <- list(noCombat = datExpr.final, combat = combat_expr, outlier = outlier.df)
   return(out)
 }
 
