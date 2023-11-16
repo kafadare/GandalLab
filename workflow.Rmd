@@ -79,10 +79,6 @@ fetal_rmLow_plot_counts <- prep_datExp(fetal_lowrm_counts, gtf_fetal_all) %>% pl
 fetal_rmLow_plot_tpm <- prep_datExp(fetal_lowrm_tpm, gtf_fetal_all) %>% plot_gen_density(., title_str = "Fetal Tpm EUR LowRM", ylim = c(0, 2.0))
 ```
 
-
-
-
-
 #Format adult metadata
 Do not need to run again, output already saved.
 ```{r}
@@ -161,9 +157,9 @@ write.table(gtf_adult_eur, file = paste0(output_dir,"gene_info_adult_eur.tsv"), 
 
 ##plot adult EUR data (lowly expressed already removed)
 ```{r}
-#gtf_adult_eur <- fread("/u/project/gandalm/kafadare/comb_data/new_data/gene_info_adult_eur.tsv", data.table = F)
+gtf_adult_eur <- fread("/u/project/gandalm/kafadare/comb_data/new_data/gene_info_adult_eur.tsv", data.table = F)
 adult_eur_counts_plot <- prep_datExp(adult$counts, gtf_adult_eur) %>% plot_gen_density(., title_str = "Adult Counts EUR LowRm", ylim = c(0, 0.75))
-adult_eur_tpm_plot <- prep_datExp(adult$tpm, gtf_adult_eur) %>% plot_gen_density(., title_str = "Adult Tpm EUR LowRM", ylim = c(0, 2.0))
+#adult_eur_tpm_plot <- prep_datExp(adult$tpm, gtf_adult_eur) %>% plot_gen_density(., title_str = "Adult Tpm EUR LowRM", ylim = c(0, 2.0))
 
 ```
 
@@ -203,9 +199,9 @@ sex code
 F - 0
 M - 1
 ```{r}
- fetal_meta_path <- "/u/project/gandalm/kafadare/comb_data/new_data/fetal_eur_meta.tsv"
+#fetal_meta_path <- "/u/project/gandalm/kafadare/comb_data/new_data/fetal_eur_meta.tsv"
 # adult_meta_path <- "/u/project/gandalm/kafadare/comb_data/new_data/adult_eur_meta.tsv"
- fetal <- load_data(names = c("meta"),fetal_meta_path)
+#fetal <- load_data(names = c("meta"),fetal_meta_path)
 # adult <- load_data(names = c("meta"),adult_meta_path)
 
 #adult metadata cleanup
@@ -357,30 +353,30 @@ genExp <- genExp[,which(colnames(genExp) %in% colnames(combat_expr))]
 
 data.batch <- c()
   ##need to get data.batch
-  for (i in 1:ncol(genExp[,which(colnames(genExp) %in% colnames(combat_expr))])) {
-    sample <- colnames(genExp[,which(colnames(genExp) %in% colnames(combat_expr))])[i]
+  for (i in 1:ncol(genExp)) {
+    sample <- colnames(genExp)[i]
     #match the sample to id in meta file and find corresponding "study"
     data.batch[i] <- meta[which(meta$Subject %in% sample), "study"]
   } 
 
-s <- svd(genExp[,which(colnames(genExp) %in% colnames(combat_expr))] - rowMeans(genExp[,which(colnames(genExp) %in% colnames(combat_expr))]))
+s <- svd(genExp - rowMeans(genExp))
 PC1 <- s$d[1]*s$v[,1]
 PC2 <- s$d[2]*s$v[,2]
 data <- data.frame(PC1, PC2, "Data" = factor(data.batch))
  
     
-data.batch1 <- c()
-  ##need to get data.batch
-  for (i in 1:ncol(combat_expr)) {
-    sample <- colnames(combat_expr)[i]
-    #match the sample to id in meta file and find corresponding "study"
-    data.batch1[i] <- meta[which(meta$Subject %in% sample), "study"]
-  }
+# data.batch1 <- c()
+#   ##need to get data.batch
+#   for (i in 1:ncol(combat_expr)) {
+#     sample <- colnames(combat_expr)[i]
+#     #match the sample to id in meta file and find corresponding "study"
+#     data.batch1[i] <- meta[which(meta$Subject %in% sample), "study"]
+#   }
 
 s_1 <- svd(combat_expr - rowMeans(combat_expr))
 PC1_1 <- s_1$d[1]*s_1$v[,1]
 PC2_1 <- s_1$d[2]*s_1$v[,2]
-data1 <- data.frame(PC1_1, PC2_1, "Data" = factor(data.batch1))
+data1 <- data.frame(PC1_1, PC2_1, "Data" = factor(data.batch))
 
 #plot
 options(repr.plot.width = 12, repr.plot.height = 6)
@@ -563,16 +559,34 @@ expr <- expr %>% arrange(rownames(expr), rownames(known_covs))
 identical(rownames(known_covs),rownames(PCsTop)) #TRUE is good
 identical(rownames(known_covs),rownames(expr)) #TRUE is good
 
-covs_filter <- known_covs %>% select(age, sex, paste0("genoPC", 1:20, sep = "")) #use age rather than logPcd, because age is better distributed
+covs_filter <- known_covs %>% select(age, sex, spaste0("genoPC", 1:20, sep = "")) #use age rather than logPcd, because age is better distributed
 #Now we use `filterKnownCovariates()` to **filter out the known covariates that are captured well by the top PCs** (unadjusted $R^2\geq 0.9$ by default). This function returns the known covariates that should be kept. We use unadjusted $R^2$ instead of adjusted $R^2$ because we do not want to penalize for model complexity here. The cutoff value may be customized using the argument `unadjustedR2_cutoff`.
 knownCovariatesFiltered<-PCAForQTL::filterKnownCovariates(covs_filter,PCsTop,unadjustedR2_cutoff=0.90)
 ##Age filtered when cutoff = 0.80
 
 #Finally, we combine the remaining known covariates and the top PCs and use them as covariates in the QTL analysis. To avoid potential numerical inaccuracies in the QTL analysis, you may optionally scale the PCs to unit variance, though theoretically this would not change the QTL result from regression-based methods such as Matrix eQTL and FastQTL.
 PCsTop<-scale(PCsTop) #Optional. Could be helpful for avoiding numerical inaccuracies.
-identical(rownames(knownCovariatesFiltered), rownames(PCsTop)) #TRUE is good
+identical(rownames(knownCovariatesFiltered), rownames(PCsTop))#TRUE is good
 covariatesToUse<-cbind(knownCovariatesFiltered,PCsTop)
 write.table(covariatesToUse, paste0(output_dir,"processed/", "full_covs.txt"), quote = F, row.names = T, col.names = T, sep = "\t")
+
+#try different number of PCs are covariates
+covariatesToUse<-cbind(knownCovariatesFiltered,PCsTop[,1:50])
+write.table(covariatesToUse, paste0(output_dir,"processed/", "full_covs_50PC.txt"), quote = F, row.names = T, col.names = T, sep = "\t")
+#try different number of PCs are c ovariates
+covariatesToUse<-cbind(knownCovariatesFiltered,PCsTop[,1:50])
+write.table(covariatesToUse, paste0(output_dir,"processed/", "full_covs_50PC.txt"), quote = F, row.names = T, col.names = T, sep = "\t")
+#try different number of PCs are covariates
+write.table(knownCovariatesFiltered, paste0(output_dir,"processed/", "full_covs_noPC.txt"), quote = F, row.names = T, col.names = T, sep = "\t")
+
+
+##look at correlation between PCs and batch
+PCs_study<-as.data.frame(cbind(known_covs[,'study'],PCsTop[,1:5]))
+library(ggcorrplot)
+model.matrix(~0+., data=PCs_study) %>% 
+  cor(use="pairwise.complete.obs") %>% 
+  ggcorrplot(show.diag=FALSE, type="lower", lab=TRUE, lab_size=2)
+
 ```
 
 ##correlations between covariates
@@ -601,6 +615,11 @@ cov with variables as colnames, sample ids as rownames
 datExpr with sample id as colnames, gene id as rownames
 ```{r}
 cov <- read.table("/u/project/gandalm/kafadare/comb_data/new_data/processed/full_covs.txt",header = T, stringsAsFactors = F, check.names = F)
+#try different number of PCs
+cov36 <- read.table("/u/project/gandalm/kafadare/comb_data/new_data/processed/full_covs_36PC.txt",header = T, stringsAsFactors = F, check.names = F)
+cov50 <- read.table("/u/project/gandalm/kafadare/comb_data/new_data/processed/full_covs_50PC.txt",header = T, stringsAsFactors = F, check.names = F)
+cov75 <- read.table("/u/project/gandalm/kafadare/comb_data/new_data/processed/full_covs_75PC.txt",header = T, stringsAsFactors = F, check.names = F)
+covnoPC <- read.table("/u/project/gandalm/kafadare/comb_data/new_data/processed/full_covs_noPC.txt",header = T, stringsAsFactors = F, check.names = F)
 datExpr <- fread("/u/home/k/kafadare/project-gandalm/comb_data/new_data/processed/counts.batch.processed.tsv", data.table=F)
 rownames(datExpr) <- datExpr$V1
 datExpr <- datExpr[,-1]
@@ -610,19 +629,50 @@ datExpr <- datExpr[, order]
 identical(rownames(cov), colnames(datExpr))#TRUE
 
 cov_vars <- colnames(cov)
-
 cov <- as.matrix(cbind(1, cov))
 storage.mode(cov) <- "numeric"
-
 Y <- as.matrix(datExpr)
 X <- as.matrix(cov)
-
 beta <- (solve(t(X)%*%X)%*%t(X))%*%t(Y)
-
 datExpr_regressed <- Y - t(X[,-1]  %*% beta[-1,])
+write.table(datExpr_regressed, paste0(output_dir,"processed/", "genExp_covRegOut.tsv"), quote = F, row.names = T, col.names = T, sep = "\t")
 
+#try different number of PCs
+cov_vars36 <- colnames(cov36)
+cov36 <- as.matrix(cbind(1, cov36))
+storage.mode(cov36) <- "numeric"
+Y <- as.matrix(datExpr)
+X <- as.matrix(cov36)
+beta <- (solve(t(X)%*%X)%*%t(X))%*%t(Y)
+datExpr_regressed36 <- Y - t(X[,-1]  %*% beta[-1,])
+write.table(datExpr_regressed36, paste0(output_dir,"processed/", "genExp_cov36RegOut.tsv"), quote = F, row.names = T, col.names = T, sep = "\t")
 
-#write.table(datExpr_regressed, paste0(output_dir,"processed/", "genExp_covRegOut.tsv"), quote = F, row.names = T, col.names = T, sep = "\t")
+cov_vars50 <- colnames(cov50)
+cov50 <- as.matrix(cbind(1, cov50))
+storage.mode(cov50) <- "numeric"
+Y <- as.matrix(datExpr)
+X <- as.matrix(cov50)
+beta <- (solve(t(X)%*%X)%*%t(X))%*%t(Y)
+datExpr_regressed50 <- Y - t(X[,-1]  %*% beta[-1,])
+write.table(datExpr_regressed50, paste0(output_dir,"processed/", "genExp_cov50RegOut.tsv"), quote = F, row.names = T, col.names = T, sep = "\t")
+
+cov_vars75 <- colnames(cov75)
+cov75 <- as.matrix(cbind(1, cov75))
+storage.mode(cov75) <- "numeric"
+Y <- as.matrix(datExpr)
+X <- as.matrix(cov75)
+beta <- (solve(t(X)%*%X)%*%t(X))%*%t(Y)
+datExpr_regressed75 <- Y - t(X[,-1]  %*% beta[-1,])
+write.table(datExpr_regressed75, paste0(output_dir,"processed/", "genExp_cov75RegOut.tsv"), quote = F, row.names = T, col.names = T, sep = "\t")
+
+cov_varsnoPC <- colnames(covnoPC)
+covnoPC <- as.matrix(cbind(1, covnoPC))
+storage.mode(covnoPC) <- "numeric"
+Y <- as.matrix(datExpr)
+X <- as.matrix(covnoPC)
+beta <- (solve(t(X)%*%X)%*%t(X))%*%t(Y)
+datExpr_regressednoPC <- Y - t(X[,-1]  %*% beta[-1,])
+write.table(datExpr_regressednoPC, paste0(output_dir,"processed/", "genExp_covnoPCRegOut.tsv"), quote = F, row.names = T, col.names = T, sep = "\t")
 ```
 
 
@@ -633,7 +683,8 @@ dat_regOut <- fread("/u/project/gandalm/kafadare/comb_data/new_data/processed/ge
 rownames(dat_regOut) <- dat_regOut$V1
 dat_regOut <- dat_regOut[,-1]
 
-plot_gen_density(dat_regOut, title_str = "Merged, Cov Reg Out, N = 1968", xlim = c(-10,30), ylim = c(0,1), log = F)
+#plot_gen_density(dat_regOut, title_str = "Merged, Cov Reg Out, N = 1968", xlim = c(-10,30), ylim = c(0,1), log = F)
+
 
 data.batch <- c()
   ##need to get data.batch
@@ -657,10 +708,58 @@ data <- data.frame(PC1, PC2, "Data" = factor(data.batch))
 #     data.batch1[i] <- meta[which(meta$Subject %in% sample), "study"]
 #   }
 
-s_1 <- svd((dat_regOut) - rowMeans((dat_regOut)))
+s_1 <- svd((dat_regOut) - rowMeans(dat_regOut))
 PC1_1 <- s_1$d[1]*s_1$v[,1]
 PC2_1 <- s_1$d[2]*s_1$v[,2]
 data1 <- data.frame(PC1_1, PC2_1, "Data" = factor(data.batch))
+
+#other number of PCs regOut
+dat_regOut36 <- fread("/u/project/gandalm/kafadare/comb_data/new_data/processed/genExp_cov36RegOut.tsv", data.table = F)
+rownames(dat_regOut36) <- dat_regOut36$V1
+dat_regOut36 <- dat_regOut36[,-1]
+
+plot_gen_density(dat_regOut36, title_str = "Merged, Cov Reg Out, N = 1968", xlim = c(-10,30), ylim = c(0,1), log = F)
+
+s_36 <- svd((dat_regOut36) - rowMeans((dat_regOut36)))
+PC1_36 <- s_36$d[1]*s_36$v[,1]
+PC2_36 <- s_36$d[2]*s_36$v[,2]
+data36 <- data.frame(PC1_36, PC2_36, "Data" = factor(data.batch))
+
+#other number of PCs regOut
+dat_regOut50 <- fread("/u/project/gandalm/kafadare/comb_data/new_data/processed/genExp_cov50RegOut.tsv", data.table = F)
+rownames(dat_regOut50) <- dat_regOut50$V1
+dat_regOut50 <- dat_regOut50[,-1]
+
+plot_gen_density(dat_regOut50, title_str = "Merged, Cov Reg Out, N = 1968", xlim = c(-10,30), ylim = c(0,1), log = F)
+
+s_50 <- svd((dat_regOut50) - rowMeans((dat_regOut50)))
+PC1_50 <- s_50$d[1]*s_50$v[,1]
+PC2_50 <- s_50$d[2]*s_50$v[,2]
+data50 <- data.frame(PC1_50, PC2_50, "Data" = factor(data.batch))
+
+#other number of PCs regOut
+dat_regOut75 <- fread("/u/project/gandalm/kafadare/comb_data/new_data/processed/genExp_cov75RegOut.tsv", data.table = F)
+rownames(dat_regOut75) <- dat_regOut75$V1
+dat_regOut75 <- dat_regOut75[,-1]
+
+plot_gen_density(dat_regOut75, title_str = "Merged, Cov Reg Out, N = 1968", xlim = c(-10,30), ylim = c(0,1), log = F)
+
+s_75 <- svd((dat_regOut75) - rowMeans((dat_regOut75)))
+PC1_75 <- s_75$d[1]*s_75$v[,1]
+PC2_75 <- s_75$d[2]*s_75$v[,2]
+data75 <- data.frame(PC1_75, PC2_75, "Data" = factor(data.batch))
+
+#other number of PCs regOut
+dat_regOutnoPC <- fread("/u/project/gandalm/kafadare/comb_data/new_data/processed/genExp_covnoPCRegOut.tsv", data.table = F)
+rownames(dat_regOutnoPC) <- dat_regOutnoPC$V1
+dat_regOutnoPC <- dat_regOutnoPC[,-1]
+
+plot_gen_density(dat_regOutnoPC, title_str = "Merged, Cov Reg Out, N = 1968", xlim = c(-10,30), ylim = c(0,1), log = F)
+
+s_noPC <- svd((dat_regOutnoPC) - rowMeans((dat_regOutnoPC)))
+PC1_noPC <- s_noPC$d[1]*s_noPC$v[,1]
+PC2_noPC <- s_noPC$d[2]*s_noPC$v[,2]
+datanoPC <- data.frame(PC1_noPC, PC2_noPC, "Data" = factor(data.batch))
 
 #plot
 options(repr.plot.width = 12, repr.plot.height = 6)
@@ -671,6 +770,53 @@ data_combine <- rbind(data, data1)
 data_combine$group <- c(rep("ComBat", dim(data)[1]), 
                         rep("Cov Reg Out", dim(data1)[1]))
 data_combine$group <- factor(data_combine$group, levels = c("ComBat", "Cov Reg Out"))
+
+##
+
+#plot
+options(repr.plot.width = 12, repr.plot.height = 6)
+
+colnames(data36) <- c("PC1", "PC2", "Data")
+data_combine <- rbind(data, data36)
+
+data_combine$group <- c(rep("ComBat", dim(data)[1]), 
+                        rep("Cov Reg Out", dim(data36)[1]))
+data_combine$group <- factor(data_combine$group, levels = c("ComBat", "Cov Reg Out"))
+
+##
+#plot
+options(repr.plot.width = 12, repr.plot.height = 6)
+
+colnames(data50) <- c("PC1", "PC2", "Data")
+data_combine <- rbind(data, data50)
+
+data_combine$group <- c(rep("ComBat", dim(data)[1]), 
+                        rep("Cov Reg Out", dim(data50)[1]))
+data_combine$group <- factor(data_combine$group, levels = c("ComBat", "Cov Reg Out"))
+
+##
+#plot
+options(repr.plot.width = 12, repr.plot.height = 6)
+
+colnames(data75) <- c("PC1", "PC2", "Data")
+data_combine <- rbind(data, data75)
+
+data_combine$group <- c(rep("ComBat", dim(data)[1]), 
+                        rep("Cov Reg Out", dim(data75)[1]))
+data_combine$group <- factor(data_combine$group, levels = c("ComBat", "Cov Reg Out"))
+
+##
+#plot
+options(repr.plot.width = 12, repr.plot.height = 6)
+colnames(datanoPC) <- c("PC1", "PC2", "Data")
+data_combine <- rbind(data, datanoPC)
+
+data_combine$group <- c(rep("ComBat", dim(data)[1]), 
+                        rep("Cov Reg Out", dim(datanoPC)[1]))
+data_combine$group <- factor(data_combine$group, levels = c("ComBat", "Cov Reg Out"))
+
+
+##
 
 ggplot(data_combine, aes(x = PC1, y = PC2, color = Data)) +
   geom_point(alpha = 0.5) +
@@ -722,7 +868,6 @@ ggplot(PCsTop, aes(x = PC3, y = PC4, color = outlier)) +
         legend.text = element_text(size = 14))
 
 ```
-
 #Prep genExp format for MESC
 ```{r}
 datExp <- fread("/u/project/gandalm/kafadare/comb_data/new_data/processed/genExp_covRegOut.tsv", data.table = F)

@@ -34,23 +34,32 @@ prep_datExp <- function(.data, gtf){
 
 #function to plot gene density
 plot_gen_density <- function(.data, offset = 0.1, title_str = 'Scaled Gene Counts ', xlim = c(-10,30), ylim = c(0,1), log = TRUE){
-  # View the distribution of expression for each sample.
-  # box plot, looking for big differences in read depth (raw counts), symmetry in distribution across samples
-  par(mfrow=c(1,2))
-  boxplot(.data, range = 0, main = paste(title_str), xlab = 'Samples', xaxt = "n")
-  boxplot(log2(offset+.data), range = 0, main = paste('log2(counts+',offset,')'), xlab = 'Samples', xaxt = "n")
-  # Histogram/density plot
-  # Look for: how well do the distributions line up, outlier samples, zero counts
-  par(mfrow=c(1,1))
-  i <- 1
   if(log == TRUE){
+    # View the distribution of expression for each sample.
+    # box plot, looking for big differences in read depth (raw counts), symmetry in distribution across samples
+    par(mfrow=c(1,2))
+    boxplot(.data, range = 0, main = paste(title_str), xlab = 'Samples', xaxt = "n")
+    boxplot(log2(offset+.data), range = 0, main = paste('log2(counts+',offset,')'), xlab = 'Samples', xaxt = "n")
+    # Histogram/density plot
+    # Look for: how well do the distributions line up, outlier samples, zero counts
+    par(mfrow=c(1,1))
+    i <- 1
     plot <- plot(density(log2(offset+.data[,i])), main = title_str, xlab = paste('log2(counts+',offset,')'), 
                  xlim = xlim, ylim = ylim)
     for(i in 1:ncol(.data)){
       lines(density(log2(.1+.data[,i])), col = i)
     }
   }else{
-    plot <- plot(density(.data[,i]), main = title_str,   xlab = 'Counts', 
+    # View the distribution of expression for each sample.
+    # box plot, looking for big differences in read depth (raw counts), symmetry in distribution across samples
+    par(mfrow=c(1,2))
+    boxplot(.data, range = 0, main = paste(title_str), xlab = 'Samples', xaxt = "n")
+    boxplot(.data, range = 0, main = paste('No Log Counts'), xlab = 'Samples', xaxt = "n")
+    # Histogram/density plot
+    # Look for: how well do the distributions line up, outlier samples, zero counts
+    par(mfrow=c(1,1))
+    i <- 1
+    plot <- plot(density(.data[,i]), main = title_str,   xlab = 'No Log Counts', 
                  xlim = xlim, ylim = ylim)
     for(i in 1:ncol(.data)){
       lines(density(.data[,i]), col = i)
